@@ -12,9 +12,9 @@ mod parser;
 mod tests;
 
 use ast::MathExpression;
-use cssparser::{Parser, ParserInput, Token};
+use cssparser::{Parser, Token};
 
-type ParseResult<'i, T> = Result<T, cssparser::ParseError<'i, ()>>;
+type ParseResult<T> = Result<T, cssparser::ParseError<()>>;
 // CSS requires at least 32 levels; the shared larger ceiling bounds untrusted recursion.
 const MAX_CALC_COMPLEXITY: usize = 128;
 
@@ -45,12 +45,9 @@ fn is_math_function(name: &str) -> bool {
     )
 }
 
-fn contains_pending_variable<'i, 't>(
-    input: &mut Parser<'i, 't>,
-    nesting: usize,
-) -> ParseResult<'i, bool> {
+fn contains_pending_variable<'i>(input: &mut Parser<'i>, nesting: usize) -> ParseResult<bool> {
     if nesting > MAX_CALC_COMPLEXITY {
-        return Err(input.new_custom_error(()));
+        return Err(cssparser::ParseError::custom(()));
     }
     let mut found = false;
     while !input.is_exhausted() {
@@ -60,7 +57,7 @@ fn contains_pending_variable<'i, 't>(
                 input.parse_nested_block(|arguments| {
                     let name = arguments.expect_ident_cloned()?;
                     if !name.starts_with("--") || name.as_ref() == "--" {
-                        return Err(arguments.new_custom_error(()));
+                        return Err(cssparser::ParseError::custom(()));
                     }
                     if !arguments.is_exhausted() {
                         arguments.expect_comma()?;
@@ -252,15 +249,14 @@ pub struct PendingMathExpression {
 impl PendingMathExpression {
     pub fn parse(input: &str) -> Option<Self> {
         let source = input.trim();
-        let mut parser_input = ParserInput::new(source);
-        let mut parser = Parser::new(&mut parser_input);
+        let mut parser = Parser::new(source);
         let contains_variable = parser
             .parse_entirely(|input| {
                 let Token::Function(name) = input.next()?.clone() else {
-                    return Err(input.new_custom_error(()));
+                    return Err(cssparser::ParseError::custom(()));
                 };
                 if !is_math_function(&name) {
-                    return Err(input.new_custom_error(()));
+                    return Err(cssparser::ParseError::custom(()));
                 }
                 input.parse_nested_block(|nested| contains_pending_variable(nested, 1))
             })
