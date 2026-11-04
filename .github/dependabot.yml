@@ -2,10 +2,9 @@ version: 2
 updates:
   - package-ecosystem: cargo
     directories:
+      # The root workspace covers bindings/c, bindings/python and the Ruby
+      # extension; fuzz is a separate workspace.
       - "/"
-      - "/bindings/c"
-      - "/bindings/python"
-      - "/bindings/ruby/ext/ironpages"
       - "/fuzz"
     schedule:
       interval: weekly
