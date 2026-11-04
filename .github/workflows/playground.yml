@@ -66,7 +66,7 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
 
-      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version: '0.12.1'
 
@@ -121,9 +121,9 @@ jobs:
           cp -R tests/parity/refs site-build/parity/
           cp -R tests/parity/out site-build/parity/
 
-      - uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:
           path: site-build
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
