@@ -111,15 +111,14 @@ try {
             <h2 id="limits">Understand the portable WASM contract</h2>
             <ul class="guide-checklist">
               <li>The Node.js entry loads only the package's own WASM binary.</li>
-              <li>Document local paths and remote HTTP resources are unavailable.</li>
-              <li>The converter has no direct file output, streaming writer, or async render call.</li>
+                            <li>Pass fonts and other resources as bytes read by your application.</li>
               <li>Host code may write returned bytes with normal Node.js APIs.</li>
             </ul>
             <p>Initialization errors identify a missing or invalid packaged WASM asset and preserve the underlying cause. Conversion failures surface as JavaScript errors.</p>
 
             <h2 id="next">Go further</h2>
             <div class="guide-links">
-              <a href="https://www.npmjs.com/package/ironpages">Package on npm</a><a href="../browser/">Use the browser entry</a><a href="https://github.com/dickwu/ironpages/blob/main/bindings/README.md">Capability matrix</a><a href="https://github.com/dickwu/ironpages/pull/231">Node.js implementation</a>
+              <a href="https://www.npmjs.com/package/ironpages">Package on npm</a><a href="../browser/">Use the browser entry</a><a href="https://github.com/dickwu/ironpages/blob/main/bindings/README.md">All bindings</a><a href="https://github.com/dickwu/ironpages/pull/231">Node.js implementation</a>
             </div>
           </article>
         </div>

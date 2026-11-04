@@ -50,7 +50,7 @@
         </header>
 
         <div class="guide-layout">
-          <aside class="guide-toc" aria-label="Article contents"><p>In this guide</p><ol><li><a href="#install">Install</a></li><li><a href="#first-pdf">First PDF</a></li><li><a href="#markdown">Markdown</a></li><li><a href="#configure">Configure</a></li><li><a href="#resources">Resources</a></li><li><a href="#limits">Limits and errors</a></li><li><a href="#next">Next steps</a></li></ol></aside>
+          <aside class="guide-toc" aria-label="Article contents"><p>In this guide</p><ol><li><a href="#install">Install</a></li><li><a href="#first-pdf">First PDF</a></li><li><a href="#markdown">Markdown</a></li><li><a href="#configure">Configure</a></li><li><a href="#resources">Resources</a></li><li><a href="#limits">Errors and usage</a></li><li><a href="#next">Next steps</a></li></ol></aside>
 
           <article class="prose">
             <h2 id="install">Download the native library</h2>
@@ -114,21 +114,20 @@ ironpages_buffer_free(&amp;pdf);
 ironpages_converter_free(&amp;converter);</code></pre>
 
             <h2 id="resources">Provide fonts as bytes</h2>
-            <p>The C ABI does not read document paths or access the network. Your application may read a TrueType font or optional CJK or emoji pack, then pass its bytes to the converter.</p>
+            <p>Your application supplies every resource as bytes. Read a TrueType font or optional CJK or emoji pack, then pass its bytes to the converter.</p>
             <p>Input ranges are borrowed only for the duration of the call. The converter copies custom fonts and takes its own parsed font-pack value.</p>
 
-            <h2 id="limits">Handle failures and runtime limits</h2>
+            <h2 id="limits">Handle failures and threading</h2>
             <p>Every fallible function returns a stable status. An optional owned error adds a UTF-8 diagnostic. Rust panics are contained before they reach C.</p>
             <ul class="guide-checklist">
               <li>HTML sanitization is enabled by default.</li>
-              <li>Converters must not be used or freed concurrently.</li>
-              <li>Local paths, direct file output, async, streaming, and remote HTTP are absent.</li>
-              <li>Check <code>ironpages_abi_version()</code> before depending on a new ABI generation.</li>
+              <li>Use each converter from one thread at a time; create one converter per worker for parallel rendering.</li>
+                            <li>Check <code>ironpages_abi_version()</code> before depending on a new ABI generation.</li>
             </ul>
 
             <h2 id="next">Go further</h2>
             <div class="guide-links">
-              <a href="https://github.com/dickwu/ironpages/releases">Download a release</a><a href="https://github.com/dickwu/ironpages/tree/main/bindings/c">C binding reference</a><a href="https://github.com/dickwu/ironpages/blob/main/bindings/c/ABI.md">ABI contract</a><a href="https://github.com/dickwu/ironpages/blob/main/bindings/README.md">Capability matrix</a>
+              <a href="https://github.com/dickwu/ironpages/releases">Download a release</a><a href="https://github.com/dickwu/ironpages/tree/main/bindings/c">C binding reference</a><a href="https://github.com/dickwu/ironpages/blob/main/bindings/c/ABI.md">ABI contract</a><a href="https://github.com/dickwu/ironpages/blob/main/bindings/README.md">All bindings</a>
             </div>
           </article>
         </div>

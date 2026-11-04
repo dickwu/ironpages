@@ -50,7 +50,7 @@
         </header>
 
         <div class="guide-layout">
-          <aside class="guide-toc" aria-label="Article contents"><p>In this guide</p><ol><li><a href="#install">Install</a></li><li><a href="#first-pdf">First PDF</a></li><li><a href="#markdown">Markdown</a></li><li><a href="#configure">Configure</a></li><li><a href="#resources">Resources</a></li><li><a href="#limits">Limits and errors</a></li><li><a href="#next">Next steps</a></li></ol></aside>
+          <aside class="guide-toc" aria-label="Article contents"><p>In this guide</p><ol><li><a href="#install">Install</a></li><li><a href="#first-pdf">First PDF</a></li><li><a href="#markdown">Markdown</a></li><li><a href="#configure">Configure</a></li><li><a href="#resources">Resources</a></li><li><a href="#limits">Errors and usage</a></li><li><a href="#next">Next steps</a></li></ol></aside>
 
           <article class="prose">
             <h2 id="install">Install the Python package</h2>
@@ -111,18 +111,16 @@ pdf = converter.convert("""
 """)</code></pre>
             <p>Optional CJK and emoji font packs also enter as verified bytes through <code>add_font_pack</code>. Rendering never downloads a font pack.</p>
 
-            <h2 id="limits">Handle failures and runtime limits</h2>
+            <h2 id="limits">Handle failures</h2>
             <p>Invalid configuration and conversion failures raise <code>ValueError</code>. File writes can also raise normal Python I/O exceptions.</p>
             <ul class="guide-checklist">
               <li>HTML sanitization is enabled by default.</li>
-              <li>The Python binding has no async or streaming conversion API.</li>
-              <li>Remote HTTP document resources are not available from the binding.</li>
-              <li>Use a browser renderer for JavaScript-driven pages or exact Chrome output.</li>
+                                          <li>Local resources resolve inside the configured resource root.</li>
             </ul>
 
             <h2 id="next">Go further</h2>
             <div class="guide-links">
-              <a href="https://pypi.org/project/ironpages/">Package on PyPI</a><a href="https://github.com/dickwu/ironpages/tree/main/bindings/python">Python binding reference</a><a href="https://github.com/dickwu/ironpages/blob/main/bindings/README.md">Capability matrix</a><a href="../../guides/html-to-pdf-rust/">Rendering architecture guide</a>
+              <a href="https://pypi.org/project/ironpages/">Package on PyPI</a><a href="https://github.com/dickwu/ironpages/tree/main/bindings/python">Python binding reference</a><a href="https://github.com/dickwu/ironpages/blob/main/bindings/README.md">All bindings</a><a href="../../guides/html-to-pdf-rust/">Rendering architecture guide</a>
             </div>
           </article>
         </div>

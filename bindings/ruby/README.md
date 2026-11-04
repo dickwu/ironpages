@@ -76,14 +76,11 @@ Optional fallback packs enter through `add_font_pack`. Valid names are
 `cjk-jp`, `cjk-kr`, `cjk-sc`, `cjk-tc`, and `emoji`. Rendering never downloads
 a font pack.
 
-## Limits and errors
+## Errors
 
 - Invalid named settings raise `ArgumentError`.
 - Conversion failures raise `RuntimeError`.
 - HTML sanitization is enabled by default.
-- The binding has no async or streaming conversion API.
-- Remote HTTP document resources are not available.
-- JavaScript and browser DOM execution are not supported.
 
-See the [binding capability matrix](../README.md) for the contract shared with
+See the [bindings overview](../README.md) for the capabilities shared with
 Rust, Python, browser WebAssembly, and Node.js.

@@ -70,7 +70,7 @@
               <li><a href="#markdown">Markdown</a></li>
               <li><a href="#configure">Configure</a></li>
               <li><a href="#resources">Resources</a></li>
-              <li><a href="#limits">Limits and errors</a></li>
+              <li><a href="#limits">Errors and usage</a></li>
               <li><a href="#next">Next steps</a></li>
             </ol>
           </aside>
@@ -158,7 +158,7 @@ let pdf = HtmlConverter::new()
               plus an explicit <code>NetworkPolicy</code>. They are not enabled by default.
             </p>
 
-            <h2 id="limits">Handle errors and choose the right renderer</h2>
+            <h2 id="limits">Handle errors and use the converter well</h2>
             <p>
               Conversion methods return <code>Result</code>. Propagate or map
               <code>IronpagesError</code> at your application boundary instead of
@@ -166,9 +166,8 @@ let pdf = HtmlConverter::new()
             </p>
             <ul class="guide-checklist">
               <li>HTML sanitization is enabled by default.</li>
-              <li>JavaScript and live browser DOM behavior are not supported.</li>
-              <li>Local paths stay inside the canonical resource boundary.</li>
-              <li>Use a headless browser when exact Chrome print behavior is required.</li>
+                            <li>Local paths stay inside the canonical resource boundary.</li>
+              <li>Write large documents incrementally with the streaming writer or the async API.</li>
             </ul>
 
             <h2 id="next">Go further</h2>

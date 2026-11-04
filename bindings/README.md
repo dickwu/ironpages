@@ -4,27 +4,34 @@ Ironpages exposes one rendering engine through Rust, C, C++, .NET, Java, Python,
 Ruby, browser WebAssembly, and Node.js WebAssembly. Each binding keeps the
 conventions of its runtime while sharing the portable converter contract below.
 
-## Capability matrix
+## Shared capabilities
 
-| Capability | Rust | C ABI | C++ | .NET | Java | Python | Ruby | Browser WASM | Node.js WASM |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| HTML and Markdown to PDF bytes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
-| Reusable configured converter | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
-| Page size and margins | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
-| PDF and raster quality controls | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
-| Sanitization | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
-| Plain-text and HTML headers/footers | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
-| Custom TTF fonts | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
-| Optional CJK and emoji packs | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
-| Local resource boundary | Yes | No | No | No | No | Yes | Yes | No | No |
-| Direct file output | Yes | No | No | No | No | Yes | Yes | No | No |
-| Streaming writer and async API | Yes | No | No | No | No | No | No | No | No |
-| Remote HTTP resources | Opt-in | No | No | No | No | No | No | No | No |
+Every binding (Rust, C ABI, C++, .NET, Java, Python, Ruby, browser WebAssembly,
+and Node.js WebAssembly) provides:
 
-WebAssembly receives font and document bytes from the host application. It does
-not read local paths. Remote resource loading remains available only through the
-Rust crate's opt-in `remote` feature so language packages do not silently gain
-network access.
+- HTML and Markdown to PDF bytes
+- A reusable, configured converter
+- Page size and margins
+- PDF and raster quality controls
+- HTML sanitization, on by default
+- Plain-text and HTML headers and footers
+- Custom TrueType fonts
+- Optional CJK and emoji font packs
+
+## Runtime extras
+
+| Runtime | Extra capabilities |
+|---|---|
+| Rust | Local resource boundary, direct file output, streaming writer, async API, and opt-in remote HTTP resources through the `remote` feature |
+| Python | Local resource boundary and direct file output |
+| Ruby | Local resource boundary and direct file output |
+| CLI | Reads an HTML or Markdown file and writes a PDF file, with a local resource boundary |
+| C and C++ | Stable C ABI, C++17 RAII wrapper, and CMake and pkg-config packages |
+| .NET and Java | Managed packages with Linux, macOS, and Windows native assets |
+| Browser and Node.js WebAssembly | Rendering inside the JavaScript runtime from bytes your application supplies |
+
+Remote resource loading is opt-in through the Rust crate's `remote` feature, so
+applications choose explicitly when rendering may use the network.
 
 ## Published artifacts
 

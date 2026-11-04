@@ -50,7 +50,7 @@
         </header>
 
         <div class="guide-layout">
-          <aside class="guide-toc" aria-label="Article contents"><p>In this guide</p><ol><li><a href="#install">Install</a></li><li><a href="#first-pdf">First PDF</a></li><li><a href="#markdown">Markdown</a></li><li><a href="#configure">Configure</a></li><li><a href="#resources">Resources</a></li><li><a href="#limits">Limits and errors</a></li><li><a href="#next">Next steps</a></li></ol></aside>
+          <aside class="guide-toc" aria-label="Article contents"><p>In this guide</p><ol><li><a href="#install">Install</a></li><li><a href="#first-pdf">First PDF</a></li><li><a href="#markdown">Markdown</a></li><li><a href="#configure">Configure</a></li><li><a href="#resources">Resources</a></li><li><a href="#limits">Errors and usage</a></li><li><a href="#next">Next steps</a></li></ol></aside>
 
           <article class="prose">
             <h2 id="install">Download the native library</h2>
@@ -92,11 +92,11 @@ auto first = converter.convert_html(first_html);
 auto second = converter.convert_html(second_html);</code></pre>
 
             <h2 id="resources">Provide fonts as bytes</h2>
-            <p>The C++ wrapper does not read document paths or access the network. Read a TrueType font or optional CJK or emoji pack in your application, then lend its bytes for one call.</p>
+            <p>Your application supplies every resource as bytes. Read a TrueType font or optional CJK or emoji pack in your application, then lend its bytes for one call.</p>
             <pre><code>std::vector&lt;std::uint8_t&gt; font = read_font();
 converter.add_font("Inter", ironpages::BytesView(font));</code></pre>
 
-            <h2 id="limits">Handle failures and runtime limits</h2>
+            <h2 id="limits">Handle failures and threading</h2>
             <p>Fallible methods throw <code>ironpages::Error</code> after the C call returns. Its status is stable and its message is copied before the native error owner is released.</p>
             <pre><code>try {
     auto pdf = converter.convert_html(source);
@@ -105,14 +105,13 @@ converter.add_font("Inter", ironpages::BytesView(font));</code></pre>
 }</code></pre>
             <ul class="guide-checklist">
               <li>No exception or Rust panic crosses the native boundary.</li>
-              <li>A converter may move between threads while idle, but concurrent use is unsupported.</li>
-              <li>Local paths, direct file output, async, streaming, and remote HTTP are absent.</li>
-              <li>A moved-from owner may be destroyed or assigned a new owner.</li>
+              <li>A converter may move between threads while idle; use it from one thread at a time.</li>
+                            <li>A moved-from owner may be destroyed or assigned a new owner.</li>
             </ul>
 
             <h2 id="next">Go further</h2>
             <div class="guide-links">
-              <a href="https://github.com/dickwu/ironpages/releases">Download a release</a><a href="https://github.com/dickwu/ironpages/tree/main/bindings/cpp">C++ binding reference</a><a href="https://github.com/dickwu/ironpages/blob/main/bindings/c/ABI.md">ABI contract</a><a href="https://github.com/dickwu/ironpages/blob/main/bindings/README.md">Capability matrix</a>
+              <a href="https://github.com/dickwu/ironpages/releases">Download a release</a><a href="https://github.com/dickwu/ironpages/tree/main/bindings/cpp">C++ binding reference</a><a href="https://github.com/dickwu/ironpages/blob/main/bindings/c/ABI.md">ABI contract</a><a href="https://github.com/dickwu/ironpages/blob/main/bindings/README.md">All bindings</a>
             </div>
           </article>
         </div>

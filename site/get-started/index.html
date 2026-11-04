@@ -184,21 +184,23 @@
           <div class="runtime-section-heading">
             <div>
               <p class="eyebrow"><span></span> Choose by capability</p>
-              <h2 id="capabilities-title">The important differences.</h2>
+              <h2 id="capabilities-title">What each runtime adds.</h2>
             </div>
-            <p>All paths render HTML and Markdown with reusable converter settings. Host integration is what differs.</p>
+            <p>Every runtime renders HTML and Markdown with reusable converter settings, page and quality controls, sanitization, headers and footers, custom fonts, and optional CJK and emoji packs.</p>
           </div>
           <div class="prose">
             <table class="capability-table">
               <thead>
-                <tr><th>Capability</th><th>Rust</th><th>CLI</th><th>C</th><th>C++</th><th>.NET</th><th>Java</th><th>Python</th><th>Ruby</th><th>WASM</th></tr>
+                <tr><th>Runtime</th><th>Extra capabilities</th></tr>
               </thead>
               <tbody>
-                <tr><td>PDF bytes</td><td class="capability-yes">Yes</td><td class="capability-no">File</td><td class="capability-yes">Yes</td><td class="capability-yes">Yes</td><td class="capability-yes">Yes</td><td class="capability-yes">Yes</td><td class="capability-yes">Yes</td><td class="capability-yes">Yes</td><td class="capability-yes">Yes</td></tr>
-                <tr><td>Local resources</td><td class="capability-yes">Yes</td><td class="capability-yes">Yes</td><td class="capability-no">Host bytes</td><td class="capability-no">Host bytes</td><td class="capability-no">Host bytes</td><td class="capability-no">Host bytes</td><td class="capability-yes">Yes</td><td class="capability-yes">Yes</td><td class="capability-no">Host bytes</td></tr>
-                <tr><td>Direct file output</td><td class="capability-yes">Yes</td><td class="capability-yes">Yes</td><td class="capability-no">No</td><td class="capability-no">No</td><td class="capability-no">No</td><td class="capability-no">No</td><td class="capability-yes">Yes</td><td class="capability-yes">Yes</td><td class="capability-no">No</td></tr>
-                <tr><td>Streaming or async</td><td class="capability-yes">Yes</td><td class="capability-no">No</td><td class="capability-no">No</td><td class="capability-no">No</td><td class="capability-no">No</td><td class="capability-no">No</td><td class="capability-no">No</td><td class="capability-no">No</td><td class="capability-no">No</td></tr>
-                <tr><td>Remote HTTP</td><td>Opt-in</td><td class="capability-no">No</td><td class="capability-no">No</td><td class="capability-no">No</td><td class="capability-no">No</td><td class="capability-no">No</td><td class="capability-no">No</td><td class="capability-no">No</td><td class="capability-no">No</td></tr>
+                <tr><td>Rust</td><td>Local resource boundary, direct file output, streaming writer, async API, opt-in remote HTTP</td></tr>
+                <tr><td>CLI</td><td>HTML or Markdown file in, PDF file out, with a local resource boundary</td></tr>
+                <tr><td>Python</td><td>Local resource boundary and direct file output</td></tr>
+                <tr><td>Ruby</td><td>Local resource boundary and direct file output</td></tr>
+                <tr><td>C and C++</td><td>Stable C ABI, C++17 RAII wrapper, CMake and pkg-config packages</td></tr>
+                <tr><td>.NET and Java</td><td>Managed packages with Linux, macOS, and Windows native assets</td></tr>
+                <tr><td>WASM</td><td>Rendering in the browser or Node.js from bytes your application supplies</td></tr>
               </tbody>
             </table>
           </div>
