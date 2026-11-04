@@ -15,8 +15,7 @@
 //! Pure Rust HTML/CSS/Markdown to PDF converter. No browser, no system dependencies.
 //!
 //! ironpages converts HTML (with CSS) and Markdown into PDF documents using a
-//! built-in layout engine. Unlike other Rust PDF crates, it does not shell out
-//! to headless Chrome or wkhtmltopdf.
+//! built-in layout engine that runs entirely in-process.
 //!
 //! ## Features
 //!

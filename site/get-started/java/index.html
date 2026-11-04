@@ -50,7 +50,7 @@
         </header>
 
         <div class="guide-layout">
-          <aside class="guide-toc" aria-label="Article contents"><p>In this guide</p><ol><li><a href="#install">Install</a></li><li><a href="#first-pdf">First PDF</a></li><li><a href="#markdown">Markdown</a></li><li><a href="#configure">Configure</a></li><li><a href="#resources">Resources</a></li><li><a href="#limits">Limits and errors</a></li><li><a href="#next">Next steps</a></li></ol></aside>
+          <aside class="guide-toc" aria-label="Article contents"><p>In this guide</p><ol><li><a href="#install">Install</a></li><li><a href="#first-pdf">First PDF</a></li><li><a href="#markdown">Markdown</a></li><li><a href="#configure">Configure</a></li><li><a href="#resources">Resources</a></li><li><a href="#limits">Errors and usage</a></li><li><a href="#next">Next steps</a></li></ol></aside>
 
           <article class="prose">
             <h2 id="install">Install from Maven Central</h2>
@@ -105,18 +105,17 @@ try (var converter = new HtmlConverter()) {
     // Render documents with the configured fallback pack.
 }</code></pre>
 
-            <h2 id="limits">Handle failures and runtime limits</h2>
+            <h2 id="limits">Handle failures and threading</h2>
             <p>Renderer failures throw <code>IronpagesException</code>. Its <code>Kind</code> keeps the stable parse, layout, render, font, security, or argument category.</p>
             <ul class="guide-checklist">
               <li>HTML sanitization is enabled by default.</li>
-              <li>Calls on the same converter, including close, must not overlap.</li>
-              <li>Local paths, direct file output, async, streaming, and remote HTTP are absent.</li>
-              <li>The JAR verifies ABI generation 1 and the exact package version before allocating a converter.</li>
+              <li>Use each converter from one thread at a time, including <code>close</code>; create one converter per worker for parallel rendering.</li>
+                            <li>The JAR verifies ABI generation 1 and the exact package version before allocating a converter.</li>
             </ul>
 
             <h2 id="next">Go further</h2>
             <div class="guide-links">
-              <a href="https://central.sonatype.com/artifact/io.github.dickwu/ironpages">Package on Maven Central</a><a href="https://github.com/dickwu/ironpages/tree/main/bindings/java">Java binding reference</a><a href="https://github.com/dickwu/ironpages/blob/main/bindings/c/ABI.md">Native ABI contract</a><a href="https://github.com/dickwu/ironpages/blob/main/bindings/README.md">Capability matrix</a>
+              <a href="https://central.sonatype.com/artifact/io.github.dickwu/ironpages">Package on Maven Central</a><a href="https://github.com/dickwu/ironpages/tree/main/bindings/java">Java binding reference</a><a href="https://github.com/dickwu/ironpages/blob/main/bindings/c/ABI.md">Native ABI contract</a><a href="https://github.com/dickwu/ironpages/blob/main/bindings/README.md">All bindings</a>
             </div>
           </article>
         </div>

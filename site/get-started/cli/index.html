@@ -61,7 +61,7 @@
             <p>In this guide</p>
             <ol>
               <li><a href="#install">Install</a></li><li><a href="#first-pdf">First PDF</a></li><li><a href="#markdown">Markdown</a></li>
-              <li><a href="#configure">Configure</a></li><li><a href="#resources">Resources</a></li><li><a href="#limits">Limits and errors</a></li><li><a href="#next">Next steps</a></li>
+              <li><a href="#configure">Configure</a></li><li><a href="#resources">Resources</a></li><li><a href="#limits">Errors and usage</a></li><li><a href="#next">Next steps</a></li>
             </ol>
           </aside>
 
@@ -117,8 +117,8 @@
             <ul class="guide-checklist">
               <li>The CLI writes one complete output file per invocation.</li>
               <li>HTML sanitization is enabled unless explicitly disabled.</li>
-              <li>The published binary does not fetch remote document resources.</li>
-              <li>JavaScript and browser DOM execution are outside the renderer's scope.</li>
+              <li>Relative images, stylesheets, and fonts resolve below the <code>--base-path</code> directory.</li>
+              <li>Files ending in <code>.md</code> or <code>.markdown</code> are rendered as Markdown.</li>
             </ul>
             <p>Invalid flags, unreadable input, conversion failures, and output errors print a diagnostic and return a nonzero exit status.</p>
 

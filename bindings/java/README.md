@@ -52,4 +52,4 @@ markup in the page margins. The plain setters keep their existing text contract.
 - Windows x86-64
 
 The package checks the native ABI and Ironpages version before creating a
-converter. Unsupported platforms fail with a clear diagnostic.
+converter and reports a clear diagnostic if the native library cannot be loaded.

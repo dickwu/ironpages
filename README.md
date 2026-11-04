@@ -78,77 +78,62 @@ subprocess, or system dependencies.
   </tbody>
 </table>
 
-ironpages turns HTML, CSS, or Markdown into PDF bytes inside your application.
-Its rendering engine handles document layout, font shaping, SVG, math, and PDF
-serialization without launching Chrome. Use it from Rust, C, C++, .NET, Java,
-the CLI, Python, Ruby, Node.js, or browser WebAssembly.
+**ironpages** renders HTML, CSS, and Markdown to PDF inside your application.
+It is a self-contained Rust engine: parsing, the CSS cascade, layout, font
+shaping, SVG, math, and PDF serialization all run in-process, from one library
+or one binary. The same core ships to Rust, the CLI, C, C++, .NET, Java,
+Python, Ruby, Node.js, and browser WebAssembly.
 
-## Why ironpages?
+## Highlights
 
-- **Simple deployment:** one library or binary, with no browser runtime to install or manage.
-- **Document-focused layout:** flexbox, grid, tables, multi-column layout, `@page`, headers, and footers.
-- **Production typography:** font subsetting, core Unicode coverage, optional regional CJK/emoji packs, SVG, and math.
-- **Multiple runtimes:** the same Rust core ships to Rust, C, C++, .NET, Java, Python, Ruby, and WebAssembly.
-- **Defensive defaults:** HTML/SVG sanitization, constrained file access, and opt-in remote fetching policies.
+- **One dependency to deploy.** A single library or binary renders the document; there is no browser runtime to install or manage.
+- **Document-grade layout.** Block and inline flow, flexbox, grid, floats, positioning, tables, multi-column layout, `@page`, and page headers and footers.
+- **Real typography.** HarfBuzz-compatible shaping (rustybuzz), font subsetting, custom TrueType fonts, bidirectional text, and optional regional CJK and emoji font packs.
+- **Rich content.** Inline and external SVG, JPEG and PNG images (data URIs, local files, and remote URLs with the `remote` feature), and LaTeX math in Markdown.
+- **Predictable output.** Deterministic PDF bytes, streaming output to any `std::io::Write`, and exact flow measurement for callers that paginate themselves.
+- **Safe defaults.** HTML and SVG sanitization, a canonical local-file boundary, and an opt-in network policy for remote resources.
+- **Every runtime.** Rust, CLI, a stable C ABI, C++17 RAII wrappers, .NET, Java 17, Python, Ruby, and WebAssembly for browsers and Node.js.
+
+## Install
+
+```bash
+cargo add ironpages            # Rust library
+cargo install ironpages        # command-line tool
+```
+
+Optional Cargo features:
+
+| Feature | Adds |
+|---------|------|
+| `remote` | Fetching remote `http`/`https` resources under a configurable `NetworkPolicy` |
+| `async` | Tokio-based async file conversion |
+| `wasm` | The WebAssembly entry points used by the npm package |
 
 ## Quick start
 
 ```rust
-use ironpages::html_to_pdf;
+let pdf = ironpages::html_to_pdf("<h1>Hello</h1><p>World</p>")?;
+std::fs::write("hello.pdf", pdf)?;
 
-let pdf = html_to_pdf("<h1>Hello</h1><p>World</p>").unwrap();
-std::fs::write("output.pdf", pdf).unwrap();
+let pdf = ironpages::markdown_to_pdf("# Hello\n\nWorld")?;
 ```
+
+Stream straight into a file, socket, or buffer:
 
 ```rust
-let pdf = ironpages::markdown_to_pdf("# Hello\n\nWorld").unwrap();
+let file = std::fs::File::create("hello.pdf")?;
+ironpages::html_to_pdf_writer("<h1>Hello</h1>", file)?;
 ```
 
-Choose a complete [getting-started
-guide](https://dickwu.github.io/ironpages/get-started/) for Rust, the CLI,
-C, C++, .NET, Java, Python, Ruby, browser JavaScript, or Node.js. For a deeper Rust walkthrough, see
-[HTML-to-PDF rendering without Headless
-Chrome](https://dickwu.github.io/ironpages/guides/html-to-pdf-rust/), or
-paste a document into the [browser
-playground](https://dickwu.github.io/ironpages/playground/).
-
-## Performance
-
-Criterion measures complete, in-process conversion to PDF bytes:
-
-| Document | Representative median | Approx. conversions/sec |
-|----------|----------------------:|------------------------:|
-| Simple HTML (`<h1>` + `<p>`) | **0.93 ms** | 1,080 |
-| Styled HTML (CSS, lists, links) | **3.5 ms** | 285 |
-| Table (5 rows, styled headers) | **5.9 ms** | 170 |
-| Markdown (headings, code, lists) | **7.0 ms** | 143 |
-| Full report (tables, flex, progress bars) | **15.9 ms** | 63 |
-| Full report + header/footer | **15.9 ms** | 63 |
-| 200 CJK text-emphasis spans | **310 ms** | 3.2 |
-
-Measured on macOS ARM (Apple M2) with Rust 1.94.0 at commit
-`600aadb`. The benchmark profile uses `opt-level=3`, fat LTO, and one codegen
-unit. Results depend on hardware and document content; conversions/sec is not a
-page-throughput claim. Reproduce the measurements with:
-
-```bash
-cargo bench --bench conversion
-```
-
-## CLI
-
-```bash
-cargo install ironpages
-
-ironpages input.html output.pdf
-ironpages document.md output.pdf
-ironpages --page-size letter --landscape --margin 54 input.html output.pdf
-ironpages --header "Report" --footer "Page {page} of {pages}" input.html output.pdf
-ironpages --header-html '<strong>Report</strong>' input.html output.pdf
-echo '<h1>Hello</h1>' | ironpages --stdin output.pdf
-```
+Guides for every runtime live on the [website](https://dickwu.github.io/ironpages/):
+[get started](https://dickwu.github.io/ironpages/get-started/),
+[HTML-to-PDF rendering in Rust](https://dickwu.github.io/ironpages/guides/html-to-pdf-rust/),
+and the [browser playground](https://dickwu.github.io/ironpages/playground/).
 
 ## Builder API
+
+`HtmlConverter` configures page geometry, quality, fonts, resources, and
+running headers and footers. A converter is reusable across documents.
 
 ```rust
 use ironpages::{HtmlConverter, Margin, PageSize, RasterQuality};
@@ -160,76 +145,80 @@ let pdf = HtmlConverter::new()
         background_dpi: 144.0,
         ..RasterQuality::default()
     })
-    .header("My Document")
+    .header("Quarterly report")
     .footer("Page {page} of {pages}")
-    .convert("<h1>Custom page</h1>")
-    .unwrap();
+    .convert("<h1>Custom page</h1>")?;
 ```
 
-Use `.header_html(...)` or `.footer_html(...)` for images, tables, and styled
-markup. Rich fragments use the document sanitizer, resource policy, fonts, and
-CSS cascade. Reserve enough top or bottom margin for the fragment. The existing
-`.header(...)` and `.footer(...)` methods remain plain text; `{page}` and
-`{pages}` substitution remains a plain-text footer feature.
+- `.header(...)` / `.footer(...)` print plain text and substitute `{page}` and `{pages}`.
+- `.header_html(...)` / `.footer_html(...)` render styled markup, images, and tables using the document's fonts, CSS, sanitizer, and resource policy. Reserve enough top or bottom margin for the fragment.
+- `RasterQuality` sets the physical DPI for source images, filters, and flattened backgrounds in one place, without changing page geometry.
+- `.compress(...)`, `.jpeg_quality(...)`, and `.auto_resize_images(...)` tune output size.
+- `.base_path(...)` and `.resource_root(...)` grant access to local assets.
 
-`RasterQuality` keeps source-image, filter, and flattened-background resolution
-in one physical-DPI policy. Its default preserves sharp source/filter output
-while using 192 DPI for flattened synthetic backgrounds; lowering one field
-does not change page geometry. The CLI exposes the same controls through
-`--image-dpi`, `--filter-dpi`, and `--background-raster-dpi`.
+### Measuring flow heights
 
-## Features at a glance
+`HtmlConverter::measure_sentinel_tops` lays a document out through the full
+conversion pipeline and returns the y-position of each sentinel marker block.
+The distance between consecutive sentinels is the exact rendered height of the
+content between them, which lets an application plan its own pagination with
+the same wrapping, fonts, and CSS as the final PDF.
 
-| Area | Highlights | Details |
-|------|-----------|---------|
-| **HTML** | 50+ elements: headings, tables, lists, forms, media, `<img>`, inline `<svg>` | [Layout Engine](../../wiki/Layout-Engine) |
-| **CSS** | Flexbox, grid, multi-column, `calc()`, variables, `@media`, `@page`, `@font-face` | [CSS Support](../../wiki/CSS-Support) |
-| **Fonts** | Core Unicode fonts, custom TTF subsetting, system discovery, optional CJK/emoji packs | [Font System](../../wiki/Font-System) |
-| **Math** | LaTeX via `$...$` / `$$...$$`: fractions, roots, matrices, Greek, operators | [Math Engine](../../wiki/Math-Engine) |
-| **SVG** | Vector rendering: path, shapes, gradients, transforms, clip paths, `viewBox` | [Layout Engine](../../wiki/Layout-Engine) |
-| **Images** | JPEG + PNG, data URIs, local files, remote URLs (`remote` feature) | [Architecture](../../wiki/Architecture) |
-| **PDF** | PDF 1.4, bookmarks, link annotations, headers/footers, gradients, streaming output | [PDF Rendering](../../wiki/PDF-Rendering) |
-| **C ABI** | Stable native API with versioned Linux, macOS, and Windows libraries | [C binding](bindings/c/README.md) |
-| **C++** | Move-only C++17 RAII owners over the stable native ABI | [C++ binding](bindings/cpp/README.md) |
-| **.NET** | Managed `HtmlConverter`, typed failures, and RID-native assets | [.NET binding](bindings/dotnet/README.md) |
-| **Java** | Java 17 `HtmlConverter`, typed failures, and packaged native assets | [Java binding](bindings/java/README.md) |
-| **WASM** | `npm install ironpages` - runs in browsers and Node.js | [WASM & Playground](../../wiki/WASM-Playground) |
-| **Testing** | 3,200+ unit tests, property-based tests, 6 fuzz targets, 1,664-fixture parity corpus | [Testing Strategy](../../wiki/Testing-Strategy) |
+## Command line
 
-## Custom fonts
+```bash
+ironpages input.html output.pdf
+ironpages document.md output.pdf
+ironpages --page-size letter --landscape --margin 54 input.html output.pdf
+ironpages --header "Report" --footer "Page {page} of {pages}" input.html output.pdf
+ironpages --header-html '<strong>Report</strong>' input.html output.pdf
+ironpages --image-dpi 300 --background-raster-dpi 144 input.html output.pdf
+echo '<h1>Hello</h1>' | ironpages --stdin output.pdf
+```
+
+## Features
+
+| Area | What you get | Details |
+|------|--------------|---------|
+| **HTML** | 50+ elements: headings, paragraphs, lists, tables, forms, media, semantic sections, links, `<img>`, inline `<svg>` | [Layout Engine](../../wiki/Layout-Engine) |
+| **CSS** | Selectors and the full cascade, custom properties, `calc()`, flexbox, grid, floats, positioning, transforms, gradients, multi-column, `@media`, `@page`, `@font-face` | [CSS Support](../../wiki/CSS-Support) |
+| **Tables** | Auto and fixed layout, collapsed and separated borders, spanning cells, header rows, and page breaks between rows | [Layout Engine](../../wiki/Layout-Engine) |
+| **Fonts** | Built-in Unicode fonts (Latin, Arabic, Hebrew, and more), custom TTF embedding with subsetting, system font discovery, CJK and emoji packs | [Font System](../../wiki/Font-System) |
+| **Math** | LaTeX via `$...$` and `$$...$$`: fractions, roots, matrices, Greek letters, operators, delimiters, accents | [Math Engine](../../wiki/Math-Engine) |
+| **SVG** | Paths, shapes, text, gradients, transforms, clip paths, `viewBox` | [Layout Engine](../../wiki/Layout-Engine) |
+| **Images** | JPEG and PNG, data URIs, local files, remote URLs (`remote` feature) | [Architecture](../../wiki/Architecture) |
+| **PDF** | Bookmarks from headings, link annotations, running headers and footers, compression, streaming output | [PDF Rendering](../../wiki/PDF-Rendering) |
+| **Bindings** | C ABI, C++, .NET, Java, Python, Ruby, WebAssembly (browser and Node.js) | [Bindings](bindings/README.md) |
+
+## Fonts
 
 ```rust
 let pdf = HtmlConverter::new()
-    .add_font("Inter", std::fs::read("Inter.ttf").unwrap())
-    .convert(r#"<p style="font-family: Inter">Shaped with HarfBuzz</p>"#)
-    .unwrap();
+    .add_font("Inter", std::fs::read("Inter.ttf")?)
+    .convert(r#"<p style="font-family: Inter">Shaped with HarfBuzz</p>"#)?;
 ```
 
-Fonts are shaped with [rustybuzz](https://crates.io/crates/rustybuzz), subset to used
-glyphs only, and embedded as CIDFontType2. Core includes Latin, Arabic, Hebrew,
-and common Unicode coverage. Native builds may also discover system fonts.
+Fonts are shaped with [rustybuzz](https://crates.io/crates/rustybuzz),
+subset to the glyphs a document uses, and embedded as CIDFontType2.
 
-Full regional CJK and monochrome emoji coverage is distributed as five optional
-packs: `cjk-jp`, `cjk-kr`, `cjk-sc`, `cjk-tc`, and `emoji`. The renderer never
-downloads them. Load only the packs your application needs:
+Full regional CJK and emoji coverage comes from five optional font packs:
+`cjk-jp`, `cjk-kr`, `cjk-sc`, `cjk-tc`, and `emoji`. Load the ones your
+application needs:
 
 ```rust
 use ironpages::{FontPack, FontPackKind, HtmlConverter};
 
 let japanese = FontPack::parse(
     FontPackKind::CjkJapanese,
-    std::fs::read("ironpages-font-cjk-jp.ttf").unwrap(),
-)
-.unwrap();
+    std::fs::read("ironpages-font-cjk-jp.ttf")?,
+)?;
 let pdf = HtmlConverter::new()
     .add_font_pack(japanese)
-    .convert("<p lang='ja'>日本語</p>")
-    .unwrap();
+    .convert("<p lang='ja'>日本語</p>")?;
 ```
 
-Use `lang` on the document or a nested element to select the correct regional
-CJK glyph forms. See [Font System](../../wiki/Font-System) and
-[font-packs/README.md](font-packs/README.md).
+The `lang` attribute selects regional glyph forms. See
+[Font System](../../wiki/Font-System) and [font-packs/README.md](font-packs/README.md).
 
 ## Math
 
@@ -239,20 +228,21 @@ The equation $E = mc^2$ is famous.
 $$\sum_{k=1}^{n} k = \frac{n(n+1)}{2}$$
 ```
 
-Full LaTeX support: fractions, roots, matrices, Greek letters, operators, delimiters, accents. See [Math Engine](../../wiki/Math-Engine).
+See [Math Engine](../../wiki/Math-Engine).
 
 ## Language bindings
 
-The C ABI ships as versioned static and shared libraries in GitHub Releases.
-Relocatable CMake targets serve C and C++ consumers, while Unix archives also
-provide pkg-config metadata. The ABI uses opaque handles, explicit allocation
-ownership, stable status codes, and no ambient error state. See the
-[C binding guide](bindings/c/README.md).
-
-Python and Ruby expose the same reusable converter controls as WebAssembly:
+Every binding wraps the same Rust engine and exposes a reusable converter with
 page geometry, quality settings, sanitization, headers and footers, custom
-fonts, and optional CJK or emoji packs. See the complete
-[binding capability matrix](bindings/README.md).
+fonts, and font packs. The [bindings guide](bindings/README.md) covers each one.
+
+**C and C++.** Versioned static and shared libraries for Linux, macOS, and
+Windows ship in GitHub Releases, with relocatable CMake targets and pkg-config
+metadata. The ABI uses opaque handles, explicit ownership, and stable status
+codes; the C++17 header adds move-only RAII owners. See the
+[C guide](bindings/c/README.md) and [C++ guide](bindings/cpp/README.md).
+
+**.NET**
 
 ```bash
 dotnet add package Ironpages
@@ -266,6 +256,8 @@ using var converter = new HtmlConverter()
     .SetFooter("Page {page} of {pages}");
 byte[] pdf = converter.ConvertHtml("<h1>Hello</h1>");
 ```
+
+**Java 17+**
 
 ```xml
 <dependency>
@@ -281,17 +273,22 @@ try (var converter = new HtmlConverter()) {
 }
 ```
 
+**Python 3.9+**
+
 ```bash
 pip install ironpages
 ```
 
 ```python
 import ironpages
+
 converter = ironpages.HtmlConverter()
 converter.page_size("Letter")
 converter.footer("Page {page} of {pages}")
 pdf = converter.convert("<h1>Hello</h1>")
 ```
+
+**Ruby 3.1+**
 
 ```bash
 gem install ironpages
@@ -299,21 +296,21 @@ gem install ironpages
 
 ```ruby
 require "ironpages"
+
 converter = Ironpages::HtmlConverter.new
   .page_size("Letter")
   .footer("Page {page} of {pages}")
 pdf = converter.convert("<h1>Hello</h1>")
 ```
 
-## WASM
+**JavaScript (WebAssembly)**
 
 ```bash
 npm install ironpages
 ```
 
-Browser entry point:
-
 ```javascript
+// Browser
 import init, { HtmlConverter } from 'ironpages';
 await init();
 
@@ -325,54 +322,30 @@ const blob = new Blob([pdf], { type: 'application/pdf' });
 converter.free();
 ```
 
-Node.js entry point:
-
 ```javascript
+// Node.js
 import init, { HtmlConverter } from 'ironpages/node';
-
 await init();
 
 const converter = new HtmlConverter();
-converter.pageSize('Letter');
 const pdf = converter.htmlToPdf('<h1>Hello from Node.js</h1>');
 converter.free();
 ```
 
-`ironpages/node` locates and loads the WebAssembly binary shipped in the npm
-package. Applications do not need to resolve or read it themselves. This entry
-point uses the portable WebAssembly contract: document resources, custom fonts,
-and optional font packs remain caller-provided bytes. Local paths, direct file
-output, streaming, and remote fetching are not available.
-
-See [WASM & Playground](../../wiki/WASM-Playground).
+`ironpages/node` loads the WebAssembly binary bundled in the npm package.
+Documents, resources, custom fonts, and font packs are passed in as bytes. See
+[WASM & Playground](../../wiki/WASM-Playground).
 
 ## Security
 
-HTML is sanitized by default. Scripts, iframes, event handlers, and
-`javascript:` URLs are removed. SVG sanitization and image decoder limits also
-apply.
-
-Local files are denied unless `base_path` or `resource_root` grants a canonical
-directory. Traversal and symlink escapes outside that directory are rejected.
-
-Remote fetching is disabled unless the crate is built with `remote`:
-
-```bash
-cargo add ironpages --features remote
-```
-
-With that feature, public HTTP and HTTPS resources are allowed by default.
-Loopback, private, link-local, metadata, multicast, documentation, and reserved
-addresses are denied. Redirects are checked again, DNS results are pinned to
-the connection, and response bodies are limited to 10 MB by default.
-
-Use an allow list for a known CDN, or combine it with `deny_public_ips(true)`
-to deny every host that was not explicitly allowed:
+- **Sanitized HTML by default.** Scripts, iframes, event handlers, and `javascript:` URLs are removed; SVG is sanitized and image decoding is bounded.
+- **Local files inside a boundary.** Files are read only from the canonical directory granted by `.base_path(...)` or `.resource_root(...)`, with traversal and symlink escapes rejected.
+- **Remote resources by policy.** With the `remote` feature, public `http`/`https` resources load while loopback, private, link-local, metadata, multicast, and reserved addresses are denied. Redirects are re-checked, DNS answers are pinned to the connection, and bodies are capped at 10 MB by default.
 
 ```rust
 use ironpages::{HtmlConverter, NetworkPolicy, RemoteHost};
 
-let cdn: RemoteHost = "cdn.example.com".parse().expect("valid host");
+let cdn: RemoteHost = "cdn.example.com".parse()?;
 let policy = NetworkPolicy::default()
     .with_allow_list([cdn])
     .deny_public_ips(true)
@@ -381,117 +354,70 @@ let policy = NetworkPolicy::default()
 
 let pdf = HtmlConverter::new()
     .network_policy(policy)
-    .convert("<img src='https://cdn.example.com/logo.png'>")
-    .expect("conversion succeeds");
+    .convert("<img src='https://cdn.example.com/logo.png'>")?;
 ```
 
-A deny-list match always wins. An allow-list match explicitly trusts that host
-and bypasses its IP-class check.
+Sanitization, local-file access, and remote access are configured
+independently. For services that render untrusted documents, pair these
+controls with host-level egress rules and per-conversion time and memory
+limits. See [Resource Security](../../wiki/Resource-Security).
 
-Environment proxies are respected. They are operator configuration, not
-document input. If the proxy resolves the target hostname, Ironpages can still
-check target IP literals and host lists, but the proxy must enforce the final
-IP policy.
+## Performance
 
-For a server that converts untrusted documents, also enforce egress outside the
-process:
+Criterion measures complete, in-process conversion to PDF bytes:
 
-- Block cloud metadata, loopback, private, and link-local networks at the host
-  or network namespace.
-- Restrict outbound DNS and traffic to required destinations or a controlled
-  proxy.
-- Apply time, memory, and process limits to conversions.
-- Treat image malware scanning as a server concern. Ironpages controls resource
-  access; it is not an antivirus.
+| Document | Median | Conversions/sec |
+|----------|-------:|----------------:|
+| Simple HTML (`<h1>` + `<p>`) | **0.93 ms** | 1,080 |
+| Styled HTML (CSS, lists, links) | **3.5 ms** | 285 |
+| Table (5 rows, styled headers) | **5.9 ms** | 170 |
+| Markdown (headings, code, lists) | **7.0 ms** | 143 |
+| Full report (tables, flex, progress bars) | **15.9 ms** | 63 |
+| Full report + header/footer | **15.9 ms** | 63 |
+| 200 CJK text-emphasis spans | **310 ms** | 3.2 |
 
-HTML sanitization, local-file access, and remote access are independent.
-Calling `.sanitize(false)` does not disable either resource policy.
-
-Migration note: `.sanitize(false)` no longer grants implicit access to files in
-the process working directory. Configure `.base_path(...)` for document assets,
-and `.resource_root(...)` when those assets need a broader directory boundary.
-
-See [Resource Security](../../wiki/Resource-Security) for the complete threat
-model, proxy boundary, and server deployment guidance.
+Measured on an Apple M2 with Rust 1.94.0 (`opt-level=3`, fat LTO, one codegen
+unit). Reproduce with `cargo bench --bench conversion`.
 
 ## How it works
 
 ```
-HTML/Markdown → Sanitize → Parse (html5ever) → Style cascade → Layout engine → PDF 1.4
+HTML/Markdown → Sanitize → Parse (html5ever) → Style cascade → Layout → PDF
 ```
 
 See [Architecture](../../wiki/Architecture) for the full pipeline.
 
-## Visual parity harness
+## Quality and testing
 
-`tests/parity/` is an adversarial HTML/CSS corpus with one focused fixture per
-feature, value, or interaction. Ironpages produces the candidate PDF; the
-declared oracle renderer's PDF is committed. At test time both PDFs go through the
-same discovered `pdftoppm` executable with the same 300 DPI arguments. A fixture
-passes only when a fixed, same-coordinate human-visibility policy finds no
-visible defect. Every raw RGBA difference remains in the evidence; the harness
-never translates, registers, or fixture-tunes either raster.
+- **3,200+ unit tests**, property-based tests, and six fuzz targets.
+- **Visual parity corpus.** `tests/parity/` holds 1,600+ focused HTML/CSS fixtures, each compared against a committed oracle PDF at 300 DPI. Run `scripts/parity.sh`; results are published in the [parity report](https://dickwu.github.io/ironpages/parity/reports/).
+- **Golden regression tests.** `cargo test --test golden` renders synthetic documents (meal plan tables, progress notes, tall images, image table rows, EXIF-rotated JPEGs) twice, requires identical bytes, and checks page count, size, and SHA-256 against `tests/golden/expected/`. After an intended change, run `UPDATE_GOLDEN=1 cargo test --test golden`; add `GOLDEN_RASTER=1` to write PNG pages to `target/tmp/golden/`.
 
-```bash
-scripts/parity.sh                       # run the complete exact parity gate
-scripts/parity-gen-refs.sh <category>   # regenerate oracle PDFs explicitly
-scripts/parity-gen-refs.sh --check      # authenticate the complete corpus
-```
+## Migrating from ironpress
 
-- **Run it:** `scripts/parity.sh` supplies a fresh invocation identity, renders
-  every fixture in-process, rasterizes candidate and oracle PDFs symmetrically,
-  and verifies that JSON, Markdown, and HTML all belong to that invocation.
-- **Read it:** the [HTML parity report](https://dickwu.github.io/ironpages/parity/reports/)
-  provides the complete visual evidence; `tests/parity/REPORT.md` is the compact,
-  problem-first summary, and `tests/parity/report.json` contains the complete
-  machine result.
-- **Oracles:** committed PDFs are the source of truth. Oracle-preview, candidate,
-  and diff PNGs are generated report evidence and are intentionally ignored.
-  `refs.lock` authenticates each fixture, oracle PDF, manifest entry, renderer,
-  fonts, and generator provenance. Every future oracle PDF is generated only by
-  the pinned Chromium Fontations/Foundation launcher; authenticated historical
-  non-Chromium PDFs are evidence-only and cannot be regenerated.
-- **Baseline:** `tests/parity/baseline.json` is a separately reviewed regression
-  snapshot. Updating it is explicit; retained FAILs remain current-health
-  failures while their exact rasters become protected against movement or
-  worsening.
-- **CI:** `.github/workflows/parity.yml` runs the same browser-free gate, checks
-  `refs.lock`, and uploads the current report and evidence even when defects make
-  the gate fail.
-
-## Fork and migration from ironpress
-
-ironpages is a fork of [ironpress](https://github.com/gastongouron/ironpress)
-by Gaston Gouron and contributors (MIT). It starts from the ironpress 1.7.0 tree
-at `dickwu/ironpress@db93fcdc`. Version 2.0.0 renames everything, so it is a
-major release even though rendering is unchanged:
+ironpages 2.0.0 starts from the ironpress 1.7.0 tree with identical rendering
+output. The major version reflects the new names:
 
 | Area | ironpress 1.x | ironpages 2.x |
 | --- | --- | --- |
-| Rust crate | `ironpress = "1"` | `ironpages = "2"` (or keep old paths with `use ironpages as ironpress;`) |
+| Rust crate | `ironpress = "1"` | `ironpages = "2"` (or `use ironpages as ironpress;`) |
 | Error type | `IronpressError` | `IronpagesError` |
-| C ABI | `ironpress_*` functions, `IRONPRESS_*` constants, `ironpress.h` | `ironpages_*`, `IRONPAGES_*`, `ironpages.h` |
-| Python | `pip install ironpress`, `import ironpress` | `pip install ironpages`, `import ironpages` (Python 3.9+) |
-| Ruby | `gem "ironpress"` | `gem "ironpages"` (Ruby 3.1+) |
+| C ABI | `ironpress_*`, `IRONPRESS_*`, `ironpress.h` | `ironpages_*`, `IRONPAGES_*`, `ironpages.h` |
+| Python | `pip install ironpress`, `import ironpress` | `pip install ironpages`, `import ironpages` |
+| Ruby | `gem "ironpress"` | `gem "ironpages"` |
 | npm / WASM | `ironpress` | `ironpages` |
 | Java | `io.github.gastongouron:ironpress` | `io.github.dickwu:ironpages` |
 | .NET | `Ironpress` | `Ironpages` |
 
-Some design ideas (the golden regression manifest, PDF/A profiles, compiled
-templates with data binding) are credited to
-[fullbleed](https://github.com/fullbleed-engine/fullbleed-official) (MIT). They
-are reimplemented, not copied. See [NOTICE](NOTICE) and [ROADMAP.md](ROADMAP.md).
+In most Rust projects the migration is a dependency rename plus
+`IronpressError` → `IronpagesError`. See [CHANGELOG.md](CHANGELOG.md).
 
-## Golden regression tests
+## Credits and license
 
-`tests/golden/fixtures/` holds synthetic documents (meal plan table, progress
-note, tall image, table rows with images, EXIF-rotated JPEG). `cargo test --test
-golden` renders each one twice, requires identical bytes, and compares page
-count, size and SHA-256 with `tests/golden/expected/<os>-<arch>.txt`. After an
-intended rendering change, run `UPDATE_GOLDEN=1 cargo test --test golden` and
-review the diff. Add `GOLDEN_RASTER=1` to write PNG pages to
-`target/tmp/golden/` for inspection.
+ironpages is a fork of [ironpress](https://github.com/gastongouron/ironpress)
+by Gaston Gouron and contributors, forked at `dickwu/ironpress@db93fcdc`
+(ironpress 1.7.0). The golden regression manifest is inspired by
+[fullbleed](https://github.com/fullbleed-engine/fullbleed-official) (MIT) and
+reimplemented here. See [NOTICE](NOTICE) and [ROADMAP.md](ROADMAP.md).
 
-## License
-
-MIT. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
+Released under the MIT license. See [LICENSE](LICENSE).

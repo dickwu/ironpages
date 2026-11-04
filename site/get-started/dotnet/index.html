@@ -50,7 +50,7 @@
         </header>
 
         <div class="guide-layout">
-          <aside class="guide-toc" aria-label="Article contents"><p>In this guide</p><ol><li><a href="#install">Install</a></li><li><a href="#first-pdf">First PDF</a></li><li><a href="#markdown">Markdown</a></li><li><a href="#configure">Configure</a></li><li><a href="#resources">Resources</a></li><li><a href="#limits">Limits and errors</a></li><li><a href="#next">Next steps</a></li></ol></aside>
+          <aside class="guide-toc" aria-label="Article contents"><p>In this guide</p><ol><li><a href="#install">Install</a></li><li><a href="#first-pdf">First PDF</a></li><li><a href="#markdown">Markdown</a></li><li><a href="#configure">Configure</a></li><li><a href="#resources">Resources</a></li><li><a href="#limits">Errors and usage</a></li><li><a href="#next">Next steps</a></li></ol></aside>
 
           <article class="prose">
             <h2 id="install">Install from NuGet</h2>
@@ -98,18 +98,17 @@ byte[] second = converter.ConvertHtml(secondDocument);</code></pre>
         File.ReadAllBytes("ironpages-font-cjk-jp.ttf")
     );</code></pre>
 
-            <h2 id="limits">Handle failures and runtime limits</h2>
+            <h2 id="limits">Handle failures and threading</h2>
             <p>Renderer failures throw <code>IronpagesException</code>. Its <code>Kind</code> keeps the stable parse, layout, render, font, security, or argument category.</p>
             <ul class="guide-checklist">
               <li>HTML sanitization is enabled by default.</li>
-              <li>Converters must not be used or disposed concurrently.</li>
-              <li>Local paths, direct file output, async, streaming, and remote HTTP are absent.</li>
-              <li>The managed package verifies ABI generation 1 before allocating a converter.</li>
+              <li>Use each converter from one thread at a time; create one converter per worker for parallel rendering.</li>
+                            <li>The managed package verifies ABI generation 1 before allocating a converter.</li>
             </ul>
 
             <h2 id="next">Go further</h2>
             <div class="guide-links">
-              <a href="https://www.nuget.org/packages/Ironpages">Package on NuGet</a><a href="https://github.com/dickwu/ironpages/tree/main/bindings/dotnet">.NET binding reference</a><a href="https://github.com/dickwu/ironpages/blob/main/bindings/c/ABI.md">Native ABI contract</a><a href="https://github.com/dickwu/ironpages/blob/main/bindings/README.md">Capability matrix</a>
+              <a href="https://www.nuget.org/packages/Ironpages">Package on NuGet</a><a href="https://github.com/dickwu/ironpages/tree/main/bindings/dotnet">.NET binding reference</a><a href="https://github.com/dickwu/ironpages/blob/main/bindings/c/ABI.md">Native ABI contract</a><a href="https://github.com/dickwu/ironpages/blob/main/bindings/README.md">All bindings</a>
             </div>
           </article>
         </div>

@@ -93,7 +93,7 @@ try {
 }</code></pre>
 
             <h2 id="resources">Provide fonts and document assets</h2>
-            <p>The WASM renderer does not read paths. Fetch or import resource bytes in your host application, then pass them to the converter.</p>
+            <p>The WASM renderer works with bytes. Fetch or import resource bytes in your host application, then pass them to the converter.</p>
             <pre><code>const response = await fetch("/fonts/Inter.ttf");
 const font = new Uint8Array(await response.arrayBuffer());
 
@@ -112,14 +112,14 @@ try {
             <ul class="guide-checklist">
               <li>Await the default initializer before the first conversion.</li>
               <li>Call <code>free()</code> for every reusable converter.</li>
-              <li>Local paths, direct file output, streaming, and remote fetching are unavailable.</li>
+              <li>Pass fonts and other resources as bytes fetched or imported by your page.</li>
               <li>Conversion is synchronous after asynchronous WASM initialization.</li>
             </ul>
             <p>Initialization and conversion failures surface as JavaScript errors. Catch them at the UI boundary and keep raw untrusted document details out of user-facing messages.</p>
 
             <h2 id="next">Go further</h2>
             <div class="guide-links">
-              <a href="../../playground/">Try the browser playground</a><a href="https://www.npmjs.com/package/ironpages">Package on npm</a><a href="../node/">Use the Node.js entry</a><a href="https://github.com/dickwu/ironpages/blob/main/bindings/README.md">Capability matrix</a>
+              <a href="../../playground/">Try the browser playground</a><a href="https://www.npmjs.com/package/ironpages">Package on npm</a><a href="../node/">Use the Node.js entry</a><a href="https://github.com/dickwu/ironpages/blob/main/bindings/README.md">All bindings</a>
             </div>
           </article>
         </div>
