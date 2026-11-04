@@ -11,6 +11,7 @@ readonly test_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly repository_dir="$(cd "${test_dir}/../../.." && pwd)"
 readonly version="$(sed -n 's/^version = "\([^"]*\)"/\1/p' \
     "${repository_dir}/bindings/c/Cargo.toml" | head -n 1)"
+readonly major="${version%%.*}"
 readonly bundle="ironpages-c-${version}-$1"
 readonly archive="${repository_dir}/dist/c/${bundle}.tar.gz"
 readonly work_dir="$(mktemp -d)"
@@ -70,12 +71,12 @@ verify_cmake_consumer cpp Ironpages::CXXStatic static
     -S "${test_dir}/package-consumers/version" \
     -B "${work_dir}/cmake-compatible-version" \
     -DCMAKE_PREFIX_PATH="${package_dir}" \
-    -DIRONPAGES_TEST_VERSION_RANGE="1.5...<2.0"
+    -DIRONPAGES_TEST_VERSION_RANGE="${major}.0...<$((major + 1)).0"
 if "${cmake_command}" \
     -S "${test_dir}/package-consumers/version" \
     -B "${work_dir}/cmake-excluded-version" \
     -DCMAKE_PREFIX_PATH="${package_dir}" \
-    -DIRONPAGES_TEST_VERSION_RANGE="1.5...<${version}"; then
+    -DIRONPAGES_TEST_VERSION_RANGE="$((major + 1)).0...<$((major + 2)).0"; then
     echo "excluded Ironpages version range was accepted" >&2
     exit 1
 fi
