@@ -1,0 +1,20 @@
+ironpages
+Copyright (c) 2026 Gaston Gouron and ironpages contributors
+Licensed under the MIT License (see LICENSE).
+
+This project is a fork of ironpress
+  https://github.com/gastongouron/ironpress
+  Copyright (c) 2026 Gaston Gouron, MIT License.
+It was created from the ironpress 1.7.0 tree at
+dickwu/ironpress@db93fcdc8b45cbe2ccc85a28e921806e1b761632
+(branch fix/meal-plan-overflow-1.7) and renamed to ironpages in 2.0.0.
+Almost all of the rendering engine is the work of the ironpress authors.
+
+Some design ideas were taken from fullbleed
+  https://github.com/fullbleed-engine/fullbleed-official
+  Copyright (c) 2026 Fullbleed Contributors, MIT License.
+Only ideas were borrowed: the golden regression manifest (output hashes
+plus optional rasterized pages, with verify and regenerate modes), and the
+PDF/A profile and compiled-template / data-binding directions described in
+ROADMAP.md. No fullbleed source code is included in this repository; the
+implementations here are independent.

@@ -1,0 +1,7 @@
+ironpages provides C and C++ CMake targets:
+
+    find_package(Ironpages CONFIG REQUIRED)
+    target_link_libraries(your_c_target PRIVATE Ironpages::C)
+    target_link_libraries(your_cpp_target PRIVATE Ironpages::CXX)
+
+Select static or dynamic linkage through the vcpkg triplet.

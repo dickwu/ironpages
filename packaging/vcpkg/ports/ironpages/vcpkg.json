@@ -1,0 +1,8 @@
+{
+  "name": "ironpages",
+  "version": "2.0.0",
+  "description": "In-process HTML, CSS, and Markdown to PDF renderer",
+  "homepage": "https://github.com/dickwu/ironpages",
+  "license": "MIT",
+  "supports": "(linux | osx | (windows & x64)) & (x64 | arm64) & !uwp & !mingw"
+}

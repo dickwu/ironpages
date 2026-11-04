@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://dickwu.github.io/ironpages/sitemap.xml

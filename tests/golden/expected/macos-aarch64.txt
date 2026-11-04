@@ -1,0 +1,7 @@
+# ironpages golden manifest: <case> pages=<n> bytes=<n> sha256=<hex>
+# Regenerate with UPDATE_GOLDEN=1 cargo test --test golden
+exif_orientation pages=1 bytes=21725 sha256=54d2c9dc4b98f7ee1634e728663eb490c197877f7261ff34666c053bb01d4f9a
+meal_plan_table pages=2 bytes=153286 sha256=96a84e62eb1c6ae001a6ba31936cda00cb2d05a5fce46eb273bda7df876739b8
+progress_note pages=1 bytes=69965 sha256=2392b65c7a29697347ab03c33d5138534bacb816376d8176d7229ef94df1c23c
+table_row_images pages=2 bytes=33955 sha256=064fa41738b037fb160b893736200d9f35d073ed69ce47f174e22aca585e6025
+tall_image pages=2 bytes=26864 sha256=eae8034626e891d4029a7e50064bf50b46cb615890094d892972ad6fc225b06a

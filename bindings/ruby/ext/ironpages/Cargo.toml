@@ -1,0 +1,17 @@
+[package]
+name = "ironpages-ruby"
+version = "2.0.0"
+edition = "2024"
+publish = false
+description = "Ruby bindings for the Ironpages HTML-to-PDF engine"
+license = "MIT"
+repository = "https://github.com/dickwu/ironpages"
+
+[lib]
+name = "ironpages_ruby"
+crate-type = ["cdylib"]
+
+[dependencies]
+ironpages-core = { version = "=2.0.0", package = "ironpages" }
+magnus = "0.9"
+rb-sys = { version = "0.9", default-features = false, features = ["stable-api-compiled-fallback"] }

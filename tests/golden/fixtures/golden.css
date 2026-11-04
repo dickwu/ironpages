@@ -1,0 +1,11 @@
+/* Shared stylesheet for golden fixtures. Fonts come from the repository's
+   bundled Liberation files so output never depends on installed system fonts. */
+@font-face { font-family: "GoldenSans"; font-weight: 400; src: url("../../../assets/LiberationSans-Regular.ttf"); }
+@font-face { font-family: "GoldenSans"; font-weight: 700; src: url("../../../assets/LiberationSans-Bold.ttf"); }
+@page { size: A4; margin: 18mm 15mm; }
+html, body { font-family: "GoldenSans"; font-size: 10pt; color: #222; }
+h1 { font-size: 16pt; margin: 0 0 6pt; }
+h2 { font-size: 12pt; margin: 10pt 0 4pt; }
+table { border-collapse: collapse; width: 100%; }
+th, td { border: 0.5pt solid #888; padding: 3pt 4pt; vertical-align: top; }
+thead th { background: #e8eef5; }

@@ -1,0 +1,128 @@
+@PACKAGE_INIT@
+
+set_and_check(
+    _ironpages_include_dir
+    "@PACKAGE_IRONPAGES_INCLUDE_INSTALL_DIR@"
+)
+set_and_check(
+    _ironpages_library_dir
+    "@PACKAGE_IRONPAGES_LIBRARY_INSTALL_DIR@"
+)
+
+if(WIN32)
+    set(_ironpages_shared_library "${_ironpages_library_dir}/ironpages_ffi.dll")
+    set(_ironpages_import_library "${_ironpages_library_dir}/ironpages_ffi.dll.lib")
+    set(_ironpages_static_library "${_ironpages_library_dir}/ironpages_ffi.lib")
+    set(
+        _ironpages_static_dependencies
+        kernel32
+        ntdll
+        userenv
+        ws2_32
+        dbghelp
+    )
+elseif(APPLE)
+    set(_ironpages_shared_library "${_ironpages_library_dir}/libironpages_ffi.dylib")
+    set(_ironpages_static_library "${_ironpages_library_dir}/libironpages_ffi.a")
+    set(_ironpages_static_dependencies iconv m)
+elseif(UNIX)
+    include(CMakeFindDependencyMacro)
+    find_dependency(Threads)
+    set(_ironpages_shared_library "${_ironpages_library_dir}/libironpages_ffi.so")
+    set(_ironpages_static_library "${_ironpages_library_dir}/libironpages_ffi.a")
+    set(_ironpages_static_dependencies ${CMAKE_DL_LIBS} Threads::Threads m)
+else()
+    set(Ironpages_FOUND FALSE)
+    set(Ironpages_NOT_FOUND_MESSAGE "Ironpages has no native artifact for this platform.")
+    return()
+endif()
+
+foreach(
+    _ironpages_required_path
+    "${_ironpages_include_dir}/ironpages.h"
+    "${_ironpages_include_dir}/ironpages.hpp"
+    "${_ironpages_shared_library}"
+    "${_ironpages_static_library}"
+)
+    if(NOT EXISTS "${_ironpages_required_path}")
+        set(Ironpages_FOUND FALSE)
+        set(
+            Ironpages_NOT_FOUND_MESSAGE
+            "The Ironpages archive is incomplete: ${_ironpages_required_path} is missing."
+        )
+        return()
+    endif()
+endforeach()
+
+if(NOT TARGET Ironpages::CShared)
+    add_library(Ironpages::CShared SHARED IMPORTED)
+    set_target_properties(
+        Ironpages::CShared
+        PROPERTIES
+            IMPORTED_LOCATION "${_ironpages_shared_library}"
+            INTERFACE_INCLUDE_DIRECTORIES "${_ironpages_include_dir}"
+    )
+    if(WIN32)
+        set_property(
+            TARGET Ironpages::CShared
+            PROPERTY IMPORTED_IMPLIB "${_ironpages_import_library}"
+        )
+    endif()
+endif()
+
+if(NOT TARGET Ironpages::CStatic)
+    add_library(Ironpages::CStatic STATIC IMPORTED)
+    set_target_properties(
+        Ironpages::CStatic
+        PROPERTIES
+            IMPORTED_LOCATION "${_ironpages_static_library}"
+            INTERFACE_INCLUDE_DIRECTORIES "${_ironpages_include_dir}"
+            INTERFACE_LINK_LIBRARIES "${_ironpages_static_dependencies}"
+    )
+endif()
+
+if(NOT TARGET Ironpages::C)
+    add_library(Ironpages::C INTERFACE IMPORTED)
+    set_property(
+        TARGET Ironpages::C
+        PROPERTY INTERFACE_LINK_LIBRARIES Ironpages::CShared
+    )
+endif()
+
+if(NOT TARGET Ironpages::CXXShared)
+    add_library(Ironpages::CXXShared INTERFACE IMPORTED)
+    set_target_properties(
+        Ironpages::CXXShared
+        PROPERTIES
+            INTERFACE_COMPILE_FEATURES cxx_std_17
+            INTERFACE_LINK_LIBRARIES Ironpages::CShared
+    )
+endif()
+
+if(NOT TARGET Ironpages::CXXStatic)
+    add_library(Ironpages::CXXStatic INTERFACE IMPORTED)
+    set_target_properties(
+        Ironpages::CXXStatic
+        PROPERTIES
+            INTERFACE_COMPILE_FEATURES cxx_std_17
+            INTERFACE_LINK_LIBRARIES Ironpages::CStatic
+    )
+endif()
+
+if(NOT TARGET Ironpages::CXX)
+    add_library(Ironpages::CXX INTERFACE IMPORTED)
+    set_property(
+        TARGET Ironpages::CXX
+        PROPERTY INTERFACE_LINK_LIBRARIES Ironpages::CXXShared
+    )
+endif()
+
+unset(_ironpages_import_library)
+unset(_ironpages_include_dir)
+unset(_ironpages_library_dir)
+unset(_ironpages_required_path)
+unset(_ironpages_shared_library)
+unset(_ironpages_static_dependencies)
+unset(_ironpages_static_library)
+
+check_required_components(Ironpages)

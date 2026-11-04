@@ -1,0 +1,30 @@
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "ironpages"
+version = "2.0.0"
+description = "Pure Rust HTML/CSS/Markdown to PDF converter. No browser, no system dependencies."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: 3",
+    "Topic :: Text Processing :: Markup :: HTML",
+]
+keywords = ["pdf", "html", "css", "markdown", "converter"]
+
+[project.urls]
+Homepage = "https://github.com/dickwu/ironpages"
+Documentation = "https://dickwu.github.io/ironpages/get-started/python/"
+Repository = "https://github.com/dickwu/ironpages"
+
+[tool.maturin]
+features = ["pyo3/extension-module"]
+module-name = "ironpages"

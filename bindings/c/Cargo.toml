@@ -1,0 +1,15 @@
+[package]
+name = "ironpages-ffi"
+version = "2.0.0"
+edition = "2024"
+rust-version = "1.88"
+publish = false
+description = "Stable C ABI for the Ironpages HTML-to-PDF engine"
+license = "MIT"
+repository = "https://github.com/dickwu/ironpages"
+
+[lib]
+crate-type = ["cdylib", "staticlib", "rlib"]
+
+[dependencies]
+ironpages-core = { version = "=2.0.0", path = "../..", package = "ironpages" }

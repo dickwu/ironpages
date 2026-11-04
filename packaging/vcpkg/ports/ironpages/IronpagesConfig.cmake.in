@@ -1,0 +1,75 @@
+get_filename_component(_ironpages_prefix "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
+
+if(NOT TARGET Ironpages::C)
+    add_library(Ironpages::C @IRONPAGES_LIBRARY_TYPE@ IMPORTED)
+    set_target_properties(
+        Ironpages::C
+        PROPERTIES
+            IMPORTED_CONFIGURATIONS "DEBUG;RELEASE"
+            INTERFACE_INCLUDE_DIRECTORIES "${_ironpages_prefix}/include"
+            MAP_IMPORTED_CONFIG_MINSIZEREL RELEASE
+            MAP_IMPORTED_CONFIG_RELWITHDEBINFO RELEASE
+    )
+
+    if(WIN32 AND "@IRONPAGES_LIBRARY_TYPE@" STREQUAL "SHARED")
+        set_target_properties(
+            Ironpages::C
+            PROPERTIES
+                IMPORTED_LOCATION_RELEASE "${_ironpages_prefix}/bin/ironpages_ffi.dll"
+                IMPORTED_LOCATION_DEBUG "${_ironpages_prefix}/debug/bin/ironpages_ffi.dll"
+                IMPORTED_IMPLIB_RELEASE "${_ironpages_prefix}/lib/ironpages_ffi.dll.lib"
+                IMPORTED_IMPLIB_DEBUG "${_ironpages_prefix}/debug/lib/ironpages_ffi.dll.lib"
+        )
+    elseif(WIN32)
+        set_target_properties(
+            Ironpages::C
+            PROPERTIES
+                IMPORTED_LOCATION_RELEASE "${_ironpages_prefix}/lib/ironpages_ffi.lib"
+                IMPORTED_LOCATION_DEBUG "${_ironpages_prefix}/debug/lib/ironpages_ffi.lib"
+                INTERFACE_LINK_LIBRARIES "kernel32;ntdll;userenv;ws2_32;dbghelp"
+        )
+    elseif(APPLE AND "@IRONPAGES_LIBRARY_TYPE@" STREQUAL "SHARED")
+        set_target_properties(
+            Ironpages::C
+            PROPERTIES
+                IMPORTED_LOCATION_RELEASE "${_ironpages_prefix}/lib/libironpages_ffi.dylib"
+                IMPORTED_LOCATION_DEBUG "${_ironpages_prefix}/debug/lib/libironpages_ffi.dylib"
+        )
+    elseif(APPLE)
+        set_target_properties(
+            Ironpages::C
+            PROPERTIES
+                IMPORTED_LOCATION_RELEASE "${_ironpages_prefix}/lib/libironpages_ffi.a"
+                IMPORTED_LOCATION_DEBUG "${_ironpages_prefix}/debug/lib/libironpages_ffi.a"
+                INTERFACE_LINK_LIBRARIES "iconv;m"
+        )
+    elseif("@IRONPAGES_LIBRARY_TYPE@" STREQUAL "SHARED")
+        set_target_properties(
+            Ironpages::C
+            PROPERTIES
+                IMPORTED_LOCATION_RELEASE "${_ironpages_prefix}/lib/libironpages_ffi.so"
+                IMPORTED_LOCATION_DEBUG "${_ironpages_prefix}/debug/lib/libironpages_ffi.so"
+        )
+    else()
+        find_package(Threads REQUIRED)
+        set_target_properties(
+            Ironpages::C
+            PROPERTIES
+                IMPORTED_LOCATION_RELEASE "${_ironpages_prefix}/lib/libironpages_ffi.a"
+                IMPORTED_LOCATION_DEBUG "${_ironpages_prefix}/debug/lib/libironpages_ffi.a"
+                INTERFACE_LINK_LIBRARIES "${CMAKE_DL_LIBS};Threads::Threads;m"
+        )
+    endif()
+endif()
+
+if(NOT TARGET Ironpages::CXX)
+    add_library(Ironpages::CXX INTERFACE IMPORTED)
+    set_target_properties(
+        Ironpages::CXX
+        PROPERTIES
+            INTERFACE_COMPILE_FEATURES cxx_std_17
+            INTERFACE_LINK_LIBRARIES Ironpages::C
+    )
+endif()
+
+unset(_ironpages_prefix)

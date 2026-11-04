@@ -1,0 +1,11 @@
+prefix=${pcfiledir}/../..
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: ironpages
+Description: Ironpages stable C ABI for HTML and Markdown to PDF
+Version: @IRONPAGES_VERSION@
+Libs: -L${libdir} -lironpages_ffi
+Libs.private: @IRONPAGES_PRIVATE_LIBS@
+Cflags: -I${includedir}

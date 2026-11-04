@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <UsePackedIronpages Condition="'$(UsePackedIronpages)' == ''">false</UsePackedIronpages>
+    <RestoreSources Condition="'$(UsePackedIronpages)' == 'true'">$(IronpagesPackageSource)</RestoreSources>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(UsePackedIronpages)' != 'true'">
+    <ProjectReference Include="../../src/Ironpages/Ironpages.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(UsePackedIronpages)' == 'true'">
+    <PackageReference Include="Ironpages" Version="$(IronpagesVersion)" />
+  </ItemGroup>
+
+  <Target Name="CopyDevelopmentNativeLibrary"
+          AfterTargets="Build"
+          Condition="'$(IronpagesNativeLibrary)' != ''">
+    <Copy SourceFiles="$(IronpagesNativeLibrary)" DestinationFolder="$(OutDir)" />
+  </Target>
+</Project>

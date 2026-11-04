@@ -1,0 +1,118 @@
+name: Parity Gate
+
+# Deterministic visual-parity gate. Renders every fixture in-process, diffs it
+# against COMMITTED browser oracle PDFs (no browser is launched here), and
+# enforces the regression gate baked into the test. Then the reference-integrity
+# check authenticates every fixture, oracle PDF, and renderer provenance against
+# refs.lock. Oracle and candidate are rasterized by this job's same Poppler.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  parity-gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # Keep the required check present: workflows skipped by a top-level path
+      # filter remain pending on GitHub. Documentation-only changes instead
+      # complete this job without running the expensive renderer parity suite.
+      - name: Detect parity-relevant changes
+        id: changes
+        env:
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          if ! git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null; then
+            echo "::warning::Base commit $BASE_SHA is unavailable; running full parity."
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          changed_paths="$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")"
+          run_parity=false
+          while IFS= read -r changed_path; do
+            [[ -z "$changed_path" ]] && continue
+            case "$changed_path" in
+              README.md|*/README.md|CHANGELOG.md|CONTRIBUTING.md) ;;
+              site/*|playground/*) ;;
+              scripts/check-site.mjs|scripts/site-document*.mjs|scripts/package*.json) ;;
+              .github/workflows/playground.yml) ;;
+              *) run_parity=true; break ;;
+            esac
+          done <<< "$changed_paths"
+          echo "run=$run_parity" >> "$GITHUB_OUTPUT"
+
+      - name: Skip parity for documentation-only changes
+        if: steps.changes.outputs.run != 'true'
+        run: echo "No renderer or parity inputs changed."
+
+      - name: Install Rust
+        if: steps.changes.outputs.run == 'true'
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        if: steps.changes.outputs.run == 'true'
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: parity-cargo-${{ runner.os }}-${{ hashFiles('Cargo.toml') }}
+
+      - name: Cache parity runtime downloads
+        if: steps.changes.outputs.run == 'true'
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ironpages/parity-runtime
+          key: parity-runtime-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/parity-install-runtime.sh') }}
+
+      - name: Install pinned Poppler and deterministic fonts
+        if: steps.changes.outputs.run == 'true'
+        timeout-minutes: 15
+        run: scripts/parity-install-runtime.sh
+
+      - name: Verify generated interaction product
+        if: steps.changes.outputs.run == 'true'
+        run: python3 scripts/generate-interaction-cartesian.py --check
+
+      - name: Run parity test (committed PDF oracles)
+        if: steps.changes.outputs.run == 'true'
+        env:
+          FONTCONFIG_FILE: ${{ github.workspace }}/tests/parity/fonts/fonts.conf
+          PARITY_PDFTOPPM: /usr/bin/pdftoppm
+        run: scripts/parity.sh
+
+      - name: Refs-freshness gate (refs.lock vs. current fixtures)
+        if: always() && steps.changes.outputs.run == 'true'
+        run: scripts/parity-gen-refs.sh --check
+
+      - name: Upload current parity evidence
+        if: always() && steps.changes.outputs.run == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: parity-current-report
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            tests/parity/REPORT.md
+            tests/parity/report.json
+            tests/parity/reports/
+            tests/parity/refs/
+            tests/parity/out/
+            tests/parity/diffs/
