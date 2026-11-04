@@ -43,7 +43,7 @@ remote = ["bogon", "core-net", "ureq", "url"]
 wasm = ["wasm-bindgen", "js-sys", "getrandom/wasm_js"]
 
 [dependencies]
-cssparser-color = "0.5"
+cssparser-color = "0.6"
 # cssparser stays on the 0.37 line shared with lightningcss alpha.72 (0.38 changes the
 # Parser/ParserInput API and would duplicate the token types).
 cssparser = "0.37"
