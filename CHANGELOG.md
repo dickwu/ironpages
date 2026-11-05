@@ -1,6 +1,24 @@
 # Changelog
 
-## [2.0.0] — Unreleased
+## [2.0.1] — 2026-11-04
+
+### Changed
+
+- cssparser 0.38 (was 0.37) for ironpages' own CSS value parsing, and
+  cssparser-color 0.6 (was 0.5). The `calc()`/math, `@page`, `font-family` and
+  `var()` parsers were moved to the 0.38 parser API; rendering is unchanged.
+  lightningcss alpha.72 keeps its own cssparser 0.37 internally.
+- Documentation: the bindings overview and every Get started page now describe
+  what each runtime provides, with a per-runtime "extras" table.
+- CI: GitHub Actions dependencies updated.
+
+### Fixed
+
+- C ABI packaging: the CMake package-version check derives its compatible and
+  excluded ranges from the crate's major version, so 2.x packages verify
+  correctly (previously hard-coded to 1.x).
+
+## [2.0.0] — 2026-11-04
 
 First release as **ironpages**, forked from ironpress 1.7.0
 (`dickwu/ironpress@db93fcdc`). Rendering output is unchanged from that tree;

@@ -1033,7 +1033,7 @@ dependencies = [
 
 [[package]]
 name = "ironpages"
-version = "2.0.0"
+version = "2.0.1"
 dependencies = [
  "bogon",
  "core-net",
@@ -1077,14 +1077,14 @@ dependencies = [
 
 [[package]]
 name = "ironpages-ffi"
-version = "2.0.0"
+version = "2.0.1"
 dependencies = [
  "ironpages",
 ]
 
 [[package]]
 name = "ironpages-python"
-version = "2.0.0"
+version = "2.0.1"
 dependencies = [
  "ironpages",
  "pyo3",
@@ -1092,7 +1092,7 @@ dependencies = [
 
 [[package]]
 name = "ironpages-ruby"
-version = "2.0.0"
+version = "2.0.1"
 dependencies = [
  "ironpages",
  "magnus",

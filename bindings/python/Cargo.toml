@@ -1,6 +1,6 @@
 [package]
 name = "ironpages-python"
-version = "2.0.0"
+version = "2.0.1"
 edition = "2024"
 publish = false
 description = "Python bindings for the Ironpages HTML-to-PDF engine"
@@ -12,5 +12,5 @@ name = "ironpages_python"
 crate-type = ["cdylib"]
 
 [dependencies]
-ironpages-core = { version = "=2.0.0", path = "../..", package = "ironpages" }
+ironpages-core = { version = "=2.0.1", path = "../..", package = "ironpages" }
 pyo3 = { version = "0.30", features = ["extension-module", "abi3-py39"] }

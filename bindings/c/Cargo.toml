@@ -1,6 +1,6 @@
 [package]
 name = "ironpages-ffi"
-version = "2.0.0"
+version = "2.0.1"
 edition = "2024"
 rust-version = "1.88"
 publish = false
@@ -12,4 +12,4 @@ repository = "https://github.com/dickwu/ironpages"
 crate-type = ["cdylib", "staticlib", "rlib"]
 
 [dependencies]
-ironpages-core = { version = "=2.0.0", path = "../..", package = "ironpages" }
+ironpages-core = { version = "=2.0.1", path = "../..", package = "ironpages" }

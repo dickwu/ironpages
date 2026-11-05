@@ -6,7 +6,7 @@ public final class IronpagesInfo {
   public static final int REQUIRED_ABI_VERSION = 1;
 
   /** Ironpages version carried by this Maven artifact. */
-  public static final String PACKAGE_VERSION = "2.0.0";
+  public static final String PACKAGE_VERSION = "2.0.1";
 
   private IronpagesInfo() {}
 

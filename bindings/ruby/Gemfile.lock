@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    ironpages (2.0.0)
+    ironpages (2.0.1)
       rb_sys (~> 0.9)
 
 GEM
