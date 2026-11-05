@@ -1,4 +1,4 @@
-use cssparser::{Parser, ParserInput};
+use cssparser::Parser;
 
 /// One family name parsed from a CSS `font-family` list.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -23,13 +23,12 @@ pub(crate) struct CssFontFamilyList(Vec<CssFontFamily>);
 
 impl CssFontFamilyList {
     pub(crate) fn parse(raw: &str) -> Option<Self> {
-        let mut input = ParserInput::new(raw);
-        let mut parser = Parser::new(&mut input);
+        let mut parser = Parser::new(raw);
         let families = parser
             .parse_comma_separated(|item| {
                 if let Ok(name) = item.try_parse(|input| input.expect_string_cloned()) {
                     if name.is_empty() || !item.is_exhausted() {
-                        return Err(item.new_custom_error::<(), ()>(()));
+                        return Err(cssparser::ParseError::<()>::custom(()));
                     }
                     return Ok(CssFontFamily {
                         name: name.to_string(),

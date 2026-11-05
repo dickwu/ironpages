@@ -5,7 +5,7 @@ use super::{
     preprocess_media_queries,
 };
 use super::{PageBleed, PageOrientation, PrinterMarks};
-use cssparser::{Parser, ParserInput};
+use cssparser::Parser;
 
 /// Parse a CSS stylesheet and extract `@page` rules.
 pub fn parse_page_rules(css: &str) -> Vec<PageRule> {
@@ -251,8 +251,7 @@ pub(crate) fn parse_page_selector_list(text: &str) -> Vec<PageSelector> {
 }
 
 fn parse_page_selector(text: &str) -> Option<PageSelector> {
-    let mut input = ParserInput::new(text.trim());
-    let mut parser = Parser::new(&mut input);
+    let mut parser = Parser::new(text.trim());
     let name = parser
         .try_parse(|parser| parser.expect_ident_cloned())
         .ok()
@@ -551,8 +550,7 @@ struct ParsedCssString {
 
 impl ParsedCssString {
     fn parse(source: &str) -> Option<Self> {
-        let mut input = ParserInput::new(source);
-        let mut parser = Parser::new(&mut input);
+        let mut parser = Parser::new(source);
         let value = parser.expect_string_cloned().ok()?.to_string();
 
         Some(Self {

@@ -44,9 +44,9 @@ wasm = ["wasm-bindgen", "js-sys", "getrandom/wasm_js"]
 
 [dependencies]
 cssparser-color = "0.6"
-# cssparser stays on the 0.37 line shared with lightningcss alpha.72 (0.38 changes the
-# Parser/ParserInput API and would duplicate the token types).
-cssparser = "0.37"
+# Our own CSS value parsing uses cssparser 0.38 (shared with cssparser-color 0.6);
+# lightningcss alpha.72 keeps its private cssparser 0.37, and no values cross between them.
+cssparser = "0.38"
 # html5ever 0.40 needs a matching markup5ever_rcdom, whose newest release is 0.39.
 html5ever = "0.39"
 lightningcss = { version = "=1.0.0-alpha.72", default-features = false }

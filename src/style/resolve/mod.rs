@@ -2,7 +2,7 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::parser::css::{CssValue, MathUnitContext};
-use cssparser::{Parser, ParserInput, Token};
+use cssparser::{Parser, Token};
 
 #[cfg(test)]
 const DEFAULT_FONT_SIZE: f32 = 12.0;
@@ -222,8 +222,7 @@ impl<'a> VarResolver<'a> {
     }
 
     fn resolve_raw(&mut self, raw: &str) -> Option<String> {
-        let mut input = ParserInput::new(raw);
-        let mut parser = Parser::new(&mut input);
+        let mut parser = Parser::new(raw);
         let mut substitutions = Vec::new();
         parser
             .parse_entirely(|input| self.collect_substitutions(input, &mut substitutions, 0))
@@ -247,12 +246,12 @@ impl<'a> VarResolver<'a> {
         Some(output.trim().to_string())
     }
 
-    fn collect_substitutions<'i, 't>(
+    fn collect_substitutions<'i>(
         &mut self,
-        input: &mut Parser<'i, 't>,
+        input: &mut Parser<'i>,
         substitutions: &mut Vec<VariableSubstitution>,
         nesting: usize,
-    ) -> Result<(), cssparser::ParseError<'i, ()>> {
+    ) -> Result<(), cssparser::ParseError<()>> {
         while !input.is_exhausted() {
             let start = input.position().byte_index();
             let token = input.next_including_whitespace_and_comments()?.clone();
@@ -271,7 +270,7 @@ impl<'a> VarResolver<'a> {
                 | Token::SquareBracketBlock
                 | Token::CurlyBracketBlock => {
                     if nesting >= MAX_VAR_COMPLEXITY {
-                        return Err(input.new_custom_error(()));
+                        return Err(cssparser::ParseError::custom(()));
                     }
                     input.parse_nested_block(|nested| {
                         self.collect_substitutions(nested, substitutions, nesting + 1)
@@ -283,13 +282,13 @@ impl<'a> VarResolver<'a> {
         Ok(())
     }
 
-    fn resolve_arguments<'i, 't>(
+    fn resolve_arguments<'i>(
         &mut self,
-        arguments: &mut Parser<'i, 't>,
-    ) -> Result<String, cssparser::ParseError<'i, ()>> {
+        arguments: &mut Parser<'i>,
+    ) -> Result<String, cssparser::ParseError<()>> {
         let name = arguments.expect_ident_cloned()?;
         if !name.starts_with("--") || name.as_ref() == "--" {
-            return Err(arguments.new_custom_error(()));
+            return Err(cssparser::ParseError::custom(()));
         }
         let fallback = if arguments.is_exhausted() {
             None
@@ -300,7 +299,7 @@ impl<'a> VarResolver<'a> {
             Some(arguments.slice_from(start).to_string())
         };
         self.resolve_var(&name, fallback.as_deref())
-            .ok_or_else(|| arguments.new_custom_error(()))
+            .ok_or_else(|| cssparser::ParseError::custom(()))
     }
 }
 
@@ -310,10 +309,10 @@ struct VariableSubstitution {
     value: String,
 }
 
-fn consume_component_values<'i, 't>(
-    input: &mut Parser<'i, 't>,
+fn consume_component_values<'i>(
+    input: &mut Parser<'i>,
     nesting: usize,
-) -> Result<(), cssparser::ParseError<'i, ()>> {
+) -> Result<(), cssparser::ParseError<()>> {
     while !input.is_exhausted() {
         let token = input.next_including_whitespace_and_comments()?.clone();
         if matches!(
@@ -324,7 +323,7 @@ fn consume_component_values<'i, 't>(
                 | Token::CurlyBracketBlock
         ) {
             if nesting >= MAX_VAR_COMPLEXITY {
-                return Err(input.new_custom_error(()));
+                return Err(cssparser::ParseError::custom(()));
             }
             input.parse_nested_block(|nested| consume_component_values(nested, nesting + 1))?;
         }

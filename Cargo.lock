@@ -1038,7 +1038,7 @@ dependencies = [
  "bogon",
  "core-net",
  "criterion",
- "cssparser 0.37.0",
+ "cssparser 0.38.0",
  "cssparser-color 0.6.0",
  "flate2",
  "fontdb",
