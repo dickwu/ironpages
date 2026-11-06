@@ -1,11 +1,8 @@
 name: Native package managers
 
-# Manual only until v2.0.0 is tagged on dickwu/ironpages. The Conan and vcpkg
-# recipes download the tagged source archive and pin its checksums, which are
-# placeholders until that tag exists. After tagging, fill in the checksums in
-# packaging/conan/all/conandata.yml and packaging/vcpkg/ports/ironpages/portfile.cmake,
-# then restore the pull_request and push triggers (paths: Cargo.lock,
-# packaging/conan/**, packaging/vcpkg/**, this workflow).
+# Manual native-package validation for tagged ironpages releases.
+# Recipes pin the source archive and Cargo.lock checksums. Keep this workflow
+# manual until the native matrix has passed before external registry submissions.
 on:
   workflow_dispatch:
 
@@ -54,10 +51,10 @@ jobs:
       - name: Detect the native Conan profile
         run: conan profile detect --force
       - name: Build and test the static package
-        run: conan create packaging/conan/all --version=2.0.0 --build=missing
+        run: conan create packaging/conan/all --version=2.0.1 --build=missing
       - name: Build and test the shared package
         run: >-
-          conan create packaging/conan/all --version=2.0.0 --build=missing
+          conan create packaging/conan/all --version=2.0.1 --build=missing
           -o "ironpages/*:shared=True"
 
   vcpkg:

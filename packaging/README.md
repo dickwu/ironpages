@@ -35,8 +35,8 @@ Install Conan 2, detect the native profile, then create both linkage variants:
 
 ```bash
 conan profile detect --force
-conan create packaging/conan/all --version=2.0.0 --build=missing
-conan create packaging/conan/all --version=2.0.0 --build=missing \
+conan create packaging/conan/all --version=2.0.1 --build=missing
+conan create packaging/conan/all --version=2.0.1 --build=missing \
   -o 'ironpages/*:shared=True'
 ```
 
@@ -46,7 +46,7 @@ renders a PDF from independent C and C++ consumers.
 After creating the package locally, a project can resolve it with:
 
 ```bash
-conan install --requires=ironpages/2.0.0 --build=missing
+conan install --requires=ironpages/2.0.1 --build=missing
 ```
 
 ## Validate vcpkg
@@ -81,7 +81,7 @@ the immutable source archive and its checksum are part of each recipe.
 4. Run the Conan and vcpkg static and shared consumer tests.
 5. Let the full native CI matrix pass before opening external registry updates.
 
-ironpages starts at `v2.0.0`; each release tag includes `Cargo.lock`, and the
+The recipes currently target `v2.0.1`; each release tag includes `Cargo.lock`, and the
 recipes download that tagged lockfile with a pinned hash so an absent or
-mismatched lock cannot silently produce an unlocked package. The 2.0.0 hashes
-are placeholders (`TBD`) until the first tag is pushed.
+mismatched lock cannot silently produce an unlocked package. The archive and lockfile hashes
+are pinned to the published `v2.0.1` tag.

@@ -2,7 +2,7 @@ vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO dickwu/ironpages
     REF "v${VERSION}"
-    SHA512 0 # TBD after the v2.0.0 tag
+    SHA512 d089dcb2e416d9db06ff9919c21a078f12e75e60828d02146be4c630801d063cabfed34172094f922afbcb4616d0dbfa01b120fe41bc39ac40f7bcc3c28aa25c
     HEAD_REF main
 )
 
@@ -10,7 +10,7 @@ vcpkg_download_distfile(
     CARGO_LOCK
     URLS "https://raw.githubusercontent.com/dickwu/ironpages/v${VERSION}/Cargo.lock"
     FILENAME "ironpages-${VERSION}-Cargo.lock"
-    SHA512 0 # TBD after the v2.0.0 tag
+    SHA512 0ec26cfc377e92e2ca47b63f726180e78fc196622171283b8f082f53f3d9a71df8b5689b6556ee81252a64ddd9576ec27d8adf587b703927acdce237e04d7f98
 )
 configure_file("${CARGO_LOCK}" "${SOURCE_PATH}/Cargo.lock" COPYONLY)
 

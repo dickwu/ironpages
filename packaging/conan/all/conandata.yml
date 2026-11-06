@@ -1,11 +1,9 @@
-# ironpages 2.0.0 is the first release of the renamed fork. The hashes below are
-# placeholders until the v2.0.0 tag exists on github.com/dickwu/ironpages; fill
-# them from the tagged archive and the tagged Cargo.lock before publishing.
+# Checksums from the immutable v2.0.1 archive and its tagged Cargo.lock.
 sources:
-  "2.0.0":
+  "2.0.1":
     archive:
-      url: "https://github.com/dickwu/ironpages/archive/refs/tags/v2.0.0.tar.gz"
-      sha256: "TBD-after-v2.0.0-tag"
+      url: "https://github.com/dickwu/ironpages/archive/refs/tags/v2.0.1.tar.gz"
+      sha256: "f092f6cfaebff637145efd9c2045ff81d8a0e95edb52b598b6534876b59922f1"
     cargo_lock:
-      url: "https://raw.githubusercontent.com/dickwu/ironpages/v2.0.0/Cargo.lock"
-      sha256: "TBD-after-v2.0.0-tag"
+      url: "https://raw.githubusercontent.com/dickwu/ironpages/v2.0.1/Cargo.lock"
+      sha256: "2cb91216b0e2c2adbbe7cac100ac1b02adf59629958897824b9d78e0bf26c8bb"
