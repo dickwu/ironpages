@@ -82,7 +82,7 @@ js-sys = { version = "0.3", optional = true }
 language-tags = "0.3.2"
 # lightningcss alpha.72 (via ahash) still uses getrandom 0.3 on wasm32. This direct edge
 # enables wasm_js for that shared dependency graph; 0.4 would leave 0.3 unconfigured.
-getrandom = { version = "0.3", optional = true }
+getrandom = { version = "0.4", optional = true }
 unicode-bidi = "0.3.18"
 unicode-linebreak = "0.1.5"
 unicode-segmentation = "1.13.2"
