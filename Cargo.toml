@@ -48,7 +48,7 @@ cssparser-color = "0.6"
 # lightningcss alpha.72 keeps its private cssparser 0.37, and no values cross between them.
 cssparser = "0.38"
 # html5ever 0.40 needs a matching markup5ever_rcdom, whose newest release is 0.39.
-html5ever = "0.39"
+html5ever = "0.40"
 lightningcss = { version = "=1.0.0-alpha.72", default-features = false }
 # lightningcss is pre-1.0 and declares a caret `parcel_selectors` range; pin the
 # selector crate to the exact release this lightningcss alpha was built against
