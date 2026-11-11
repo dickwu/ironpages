@@ -57,7 +57,7 @@ parcel_selectors = "=0.28.3"
 image = { version = "0.25", default-features = false, features = ["jpeg", "png"] }
 png_decoder = { package = "png", version = "0.18" }
 pulldown-cmark = "0.13"
-markup5ever_rcdom = "0.39"
+markup5ever_rcdom = "0.40"
 fontdb = "0.24"
 flate2 = "1"
 lru = "0.19"
