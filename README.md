@@ -329,7 +329,7 @@ byte[] pdf = converter.ConvertHtml("<h1>Hello</h1>");
 <dependency>
   <groupId>io.github.dickwu</groupId>
   <artifactId>ironpages</artifactId>
-  <version>2.1.0</version>
+  <version>2.1.1</version>
 </dependency>
 ```
 

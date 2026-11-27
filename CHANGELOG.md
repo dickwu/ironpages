@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [2.1.1] — 2026-11-26
 
 ### Fixed
 
@@ -22,6 +22,9 @@
   hyphens and across nested styled children such as `<b>`.
 - `vertical-align: middle` and `bottom` in `rowspan` cells align across the
   full spanned height, including `border-spacing` between the spanned rows.
+- A box cut at a forced break inside it (for example a page-filling table
+  with a nested `break-before: page`) is placed as cut instead of being split
+  again, which had left an empty page.
 
 ## [2.1.0] — 2026-11-26
 
