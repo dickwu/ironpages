@@ -1,5 +1,29 @@
 # Changelog
 
+## [2.1.0] — 2026-11-26
+
+### Added
+
+- `HtmlConverter::font_fallback` with `FontFallback::RegisteredOnly`: draw
+  only with registered fonts (`add_font`, `add_font_variant`, `add_font_pack`,
+  `@font-face` `url()`), never with host system, bundled, or platform fallback
+  fonts. Unregistered standard and generic names (`Helvetica`, `Arial`,
+  `Times`, `Courier`, `serif`, `sans-serif`, `monospace`) draw with the PDF
+  Base-14 fonts. `MissingGlyphs::Blank` (default for the mode) leaves
+  uncovered characters blank with their measured advance;
+  `MissingGlyphs::Error` fails the conversion with a `FontError` that lists
+  them.
+- `HtmlConverter::add_font_variant` and `FontFaceStyle` register the bold,
+  italic, and bold italic faces of a family.
+- `HtmlConverter::page_layout`, `open_zoom`, and `viewer_preferences` set the
+  catalog `/PageLayout` and `/OpenAction` (`PageLayout`, `OpenZoom`,
+  `ViewerPreferences`).
+
+### Changed
+
+- A PDF lists only the standard (Base-14) fonts its content selects, instead
+  of all thirteen. Page rendering is unchanged.
+
 ## [2.0.1] — 2026-11-04
 
 ### Changed
