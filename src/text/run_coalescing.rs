@@ -79,6 +79,8 @@ fn metadata_matches(previous: TextRunMetadata, next: TextRunMetadata) -> bool {
         && previous.spacing == next.spacing
         && previous.inline_decoration == next.inline_decoration
         && previous.is_drop_cap == next.is_drop_cap
+        && previous.no_wrap == next.no_wrap
+        && previous.whitespace == next.whitespace
         // A boundary can become ordinary intra-run tracking only when it
         // carries the same spacing as the run and no separate pair-positioning
         // adjustment.

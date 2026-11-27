@@ -385,6 +385,7 @@ pub(super) fn render_text_block_lines(
                     .unwrap_or_else(|| estimate_run_width_with_fonts(run, ctx.text.custom_fonts))
             } else {
                 estimate_run_width_with_fonts(run, ctx.text.custom_fonts)
+                    + crate::render::pdf::text_runs::justification_advance(&run.text, justify_ws)
             };
             // Draw background rectangle for inline spans
             if let Some(background) = run.background_color {
@@ -528,6 +529,9 @@ pub(super) fn render_text_block_lines(
                     })
                 } else {
                     estimate_run_width_with_fonts(run, ctx.text.custom_fonts)
+                        + crate::render::pdf::text_runs::justification_advance(
+                            &run.text, justify_ws,
+                        )
                 };
             }
         }

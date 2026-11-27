@@ -1571,8 +1571,7 @@ fn nowrap_tail_width(
     queue
         .iter()
         .take_while(|token| {
-            !token.break_before
-                && token.text != "\n"
+            token.text != "\n"
                 && runs
                     .get(token.run_index)
                     .is_some_and(|run| run.metadata.no_wrap && run.inline_box.is_none())
@@ -2171,13 +2170,27 @@ fn tokenize_text_runs(runs: &[TextRun], options: TextWrapOptions) -> Vec<StyledW
             first.joins_prev = true;
             first.break_before = false;
         }
-        if run.metadata.no_wrap
-            && let Some(tokens) = styled_words.get_mut(first_word_idx + 1..)
-        {
+        if run.metadata.no_wrap {
             // `white-space: nowrap` on the run's element: no soft wrap inside
-            // it, only at its edges (CSS Text 3 §3).
-            for token in tokens.iter_mut().filter(|token| token.text != "\n") {
-                token.break_before = false;
+            // it, only at its edges (CSS Text 3 §3). Inherited nowrap on a
+            // styled child is the same unbreakable group as the parent, so
+            // the child's first token must not reopen a break opportunity.
+            let previous_is_nowrap = first_word_idx
+                .checked_sub(1)
+                .and_then(|index| styled_words.get(index))
+                .is_some_and(|previous| {
+                    previous.text != "\n" && runs[previous.run_index].metadata.no_wrap
+                });
+            if previous_is_nowrap
+                && let Some(first) = styled_words.get_mut(first_word_idx)
+                && first.text != "\n"
+            {
+                first.break_before = false;
+            }
+            if let Some(tokens) = styled_words.get_mut(first_word_idx + 1..) {
+                for token in tokens.iter_mut().filter(|token| token.text != "\n") {
+                    token.break_before = false;
+                }
             }
         }
         if keep_trailing_space_before_rtl

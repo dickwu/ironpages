@@ -3286,10 +3286,41 @@ pub(crate) fn paginate_with_context(
                 && elem_float == Float::None
             {
                 let avail_below_box_top = effective_content_height - (y + margin_top_val);
+                // Honor a forced break that still fits on this page before
+                // splitting the table opportunistically between rows.
+                if let Some((first, rest, target)) =
+                    split_flow_at_descendant_break(element.as_ref(), avail_below_box_top)
+                {
+                    let first_fits = first.as_ref().is_none_or(|node| {
+                        !exceeds_with_roundoff(
+                            estimate_element_height(node.as_ref()),
+                            avail_below_box_top,
+                        )
+                    });
+                    if first_fits {
+                        if let Some(rest) = rest {
+                            work.push_front(PendingElement::continuation(rest));
+                        }
+                        work.push_front(PendingElement::fresh(target.into_layout_element()));
+                        if let Some(first) = first {
+                            work.push_front(PendingElement {
+                                element: first,
+                                is_fragment_continuation,
+                                avoid_group: None,
+                            });
+                        }
+                        continue;
+                    }
+                }
                 if let Some((first, rest)) =
                     split_table_between_rows(element.as_ref(), avail_below_box_top)
                 {
                     y += margin_top_val;
+                    apply_pending_target_anchors(
+                        &mut pending_target_anchors,
+                        &mut current_generated_content,
+                        first_on_page,
+                    );
                     collect_footnotes_from_element(&first, &mut current_footnotes);
                     current_elements.push((y, first));
                     let consumed_height = content_height;

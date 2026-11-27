@@ -959,6 +959,7 @@ impl HtmlConverter {
         // Step 5: Layout
         let layout_pages =
             |flow_margin: types::Margin,
+             page_geometry: layout::page_context::PageGeometryContext,
              resource_loader: &mut security::resources::ResourceLoader| {
                 layout::engine::layout_with_rules_and_fonts_raster_quality(
                     &result.nodes,
@@ -968,24 +969,32 @@ impl HtmlConverter {
                     &parsed_fonts,
                     result.font_locale,
                     &page_background,
-                    layout::paginate::PaginationContext::new(
-                        page_geometry.clone(),
-                        footnote_area,
-                        0.0,
-                    ),
+                    layout::paginate::PaginationContext::new(page_geometry, footnote_area, 0.0),
                     self.raster_quality,
                     resource_loader,
                 )
             };
-        let mut pages = layout_pages(effective_margin, &mut resource_loader);
+        let mut pages = layout_pages(effective_margin, page_geometry, &mut resource_loader);
         // The document's inline size is that of its first page (as in
         // Chromium's print layout). When the first page is a named page whose
         // horizontal margins differ from the default page's, lay out again at
-        // the named page's width so its content is not scaled to fit.
-        if let Some(first_page_margin) =
-            named_first_page_flow_margin(&pages, effective_margin, default_page_area_margin)
-        {
-            pages = layout_pages(first_page_margin, &mut resource_loader);
+        // the named page's width so its content is not scaled to fit, and
+        // recompute body centering gutters against that page's printable area.
+        if let Some(named) = named_first_page_flow(
+            &pages,
+            effective_margin,
+            default_page_area_margin,
+            body_margin,
+            body_padding,
+            &rules,
+        ) {
+            let page_geometry = layout::page_context::PageGeometryContext::from_rules(
+                effective_page_size,
+                default_page_area_margin,
+                &page_rules,
+            )
+            .with_root_flow_insets(named.root_flow_insets);
+            pages = layout_pages(named.flow_margin, page_geometry, &mut resource_loader);
         }
         let mut footnote_area_for_overflow = footnote_area;
         footnote_area_for_overflow.content_width =
@@ -5643,22 +5652,45 @@ body { background: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy
     }
 }
 
-/// Flow margin for a document whose first page is a named page with a
-/// different content width than the default page, or `None` when the first
-/// page uses the default width. Body margin, padding and centering gutters
-/// (`flow_margin - default_page_margin`) are kept on top of the named page's
-/// own horizontal margins.
-fn named_first_page_flow_margin(
+/// The document's first page is a named page and its horizontal flow width differs
+/// from the default page. Body margin and padding are kept; centering gutters
+/// (`max-width` + `margin: auto`) are recomputed against the named page area.
+fn named_first_page_flow(
     pages: &[layout::engine::Page],
     flow_margin: types::Margin,
     default_page_margin: types::Margin,
-) -> Option<types::Margin> {
+    body_margin: types::Margin,
+    body_padding: types::EdgeSizes,
+    rules: &[parser::css::CssRule],
+) -> Option<NamedFirstPageFlow> {
     let first = pages.first()?;
     first.page_name.as_ref()?;
     let geometry = first.geometry?;
-    let left = geometry.margin.left + (flow_margin.left - default_page_margin.left);
-    let right = geometry.margin.right + (flow_margin.right - default_page_margin.right);
-    let unchanged =
-        (left - flow_margin.left).abs() < 0.01 && (right - flow_margin.right).abs() < 0.01;
-    (!unchanged).then(|| types::Margin::new(flow_margin.top, right, flow_margin.bottom, left))
+    let printable = geometry.size.width
+        - geometry.margin.horizontal()
+        - body_margin.horizontal()
+        - body_padding.horizontal();
+    let gutter =
+        layout::engine::compute_root_body_centering_gutter(rules, geometry.size, printable);
+    let insets = types::Margin::new(
+        flow_margin.top - default_page_margin.top,
+        body_margin.right + body_padding.right + gutter,
+        flow_margin.bottom - default_page_margin.bottom,
+        body_margin.left + body_padding.left + gutter,
+    );
+    let left = geometry.margin.left + insets.left;
+    let right = geometry.margin.right + insets.right;
+    let unchanged = (left - flow_margin.left).abs() < 0.01
+        && (right - flow_margin.right).abs() < 0.01
+        && (insets.left - (flow_margin.left - default_page_margin.left)).abs() < 0.01
+        && (insets.right - (flow_margin.right - default_page_margin.right)).abs() < 0.01;
+    (!unchanged).then_some(NamedFirstPageFlow {
+        flow_margin: types::Margin::new(flow_margin.top, right, flow_margin.bottom, left),
+        root_flow_insets: insets,
+    })
+}
+
+struct NamedFirstPageFlow {
+    flow_margin: types::Margin,
+    root_flow_insets: types::Margin,
 }

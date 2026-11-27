@@ -84,14 +84,12 @@ impl NestedRowsRenderer<'_, '_> {
                 let content = &mut cell_content;
                 let cell_x = origin_x + cell_frame.offset();
                 let cell_w = cell_frame.extent();
-                let cell_height = row_height
-                    + self
-                        .row_heights
-                        .iter()
-                        .skip(self.element_index + 1)
-                        .take(cell.span.rows.saturating_sub(1))
-                        .flatten()
-                        .sum::<f32>();
+                let cell_height = rowspan_cell_height(
+                    &self.row_boxes,
+                    self.element_index,
+                    cell.span.rows,
+                    row_height,
+                );
                 let cell_geometry = LayoutBoxGeometry::from_layout(
                     PdfRect::new(cell_x, row_y - cell_height, cell_w, cell_height),
                     &cell.layout.box_model.border,

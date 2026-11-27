@@ -5,19 +5,80 @@ use crate::layout::elements::{GridRow, LayoutVisitor, TableRow};
 mod grid;
 mod table;
 
-fn table_row_height(element: &dyn LayoutElement) -> Option<f32> {
-    #[derive(Default)]
-    struct Height(Option<f32>);
+/// Top-left `y` and height of each table row, using the same cursor walk as
+/// painting so a rowspan cell can span intervening `border-spacing`.
+fn table_row_boxes(
+    elements: &[&dyn LayoutElement],
+    mut cursor_y: f32,
+    mut previous_margin_bottom: f32,
+    mut first_margin: FirstMarginState,
+) -> Vec<Option<(f32, f32)>> {
+    struct RowFlow {
+        margins: crate::layout::flow_metrics::BlockMargins,
+        internal: crate::layout::flow_metrics::BlockMargins,
+        extra_end: f32,
+        height: f32,
+    }
 
-    impl LayoutVisitor for Height {
+    struct Probe(Option<RowFlow>);
+
+    impl LayoutVisitor for Probe {
         fn visit_table_row(&mut self, element: &TableRow) {
-            self.0 = Some(element.content.cells.row_block_extent());
+            self.0 = Some(RowFlow {
+                margins: element.flow.margins,
+                internal: element.flow.internal,
+                extra_end: element.flow.extra_end,
+                height: element.content.cells.row_block_extent(),
+            });
         }
     }
 
-    let mut height = Height::default();
-    element.accept(&mut height);
-    height.0
+    elements
+        .iter()
+        .map(|element| {
+            let mut probe = Probe(None);
+            element.accept(&mut probe);
+            let Some(row) = probe.0 else {
+                cursor_y -= crate::layout::paginate::estimate_element_height(*element);
+                return None;
+            };
+            if first_margin == FirstMarginState::Pending {
+                cursor_y -= collapsed_margin_top_extra(row.margins.start, previous_margin_bottom);
+            }
+            first_margin = FirstMarginState::Pending;
+            cursor_y -= row.internal.start;
+            let row_y = cursor_y;
+            cursor_y -= row.height + row.internal.end + row.extra_end + row.margins.end;
+            previous_margin_bottom = row.margins.end;
+            Some((row_y, row.height))
+        })
+        .collect()
+}
+
+fn rowspan_cell_height(
+    row_boxes: &[Option<(f32, f32)>],
+    index: usize,
+    span: usize,
+    row_height: f32,
+) -> f32 {
+    let last = index + span.max(1) - 1;
+    match (
+        row_boxes.get(index).copied().flatten(),
+        row_boxes.get(last).copied().flatten(),
+    ) {
+        (Some((top, _)), Some((last_top, last_height))) => {
+            (top - (last_top - last_height)).max(row_height)
+        }
+        _ => {
+            row_height
+                + row_boxes
+                    .iter()
+                    .skip(index + 1)
+                    .take(span.saturating_sub(1))
+                    .filter_map(|entry| entry.map(|(_, height)| height))
+                    .sum::<f32>()
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -103,7 +164,7 @@ struct NestedRowsRenderer<'call, 'fonts> {
     page_height: f32,
     previous_margin_bottom: f32,
     first_margin: FirstMarginState,
-    row_heights: Vec<Option<f32>>,
+    row_boxes: Vec<Option<(f32, f32)>>,
     element_index: usize,
     table_cell_phase: TableCellPaintPhase,
     handled: bool,
@@ -202,10 +263,12 @@ fn render_row_pass(
     abs_origins: &mut HashMap<usize, PdfPoint>,
     ctx: &mut PageRenderContext<'_>,
 ) -> FlowPosition {
-    let row_heights = elements
-        .iter()
-        .map(|element| table_row_height(*element))
-        .collect();
+    let row_boxes = table_row_boxes(
+        elements,
+        flow.position.cursor_y,
+        flow.position.previous_margin_bottom,
+        flow.first_margin,
+    );
     let mut renderer = NestedRowsRenderer {
         content,
         paint,
@@ -227,7 +290,7 @@ fn render_row_pass(
         page_height: ctx.text.page_height,
         previous_margin_bottom: flow.position.previous_margin_bottom,
         first_margin: flow.first_margin,
-        row_heights,
+        row_boxes,
         element_index: 0,
         table_cell_phase,
         handled: false,

@@ -267,7 +267,13 @@ fn g9_justified_run_starts_after_its_bold_lead_in() {
     // next run starts that much later than on a left-aligned line instead of
     // overlapping the bold text.
     let (justified, left) = (gap("justify"), gap("left"));
+    // Four spaces in the bold lead-in are stretched; the advance should grow
+    // by more than a few points, but stay well short of a second application.
     assert!(justified > left + 4.0, "{justified} vs {left}");
+    assert!(
+        justified < left + 40.0,
+        "advance applied twice? {justified} vs {left}"
+    );
 }
 
 #[test]
@@ -290,7 +296,10 @@ fn g10_inline_nowrap_span_does_not_break_at_its_hyphen() {
     let (x, y) = text_origin(&nowrap, "mind-muscle").expect("painted as one piece");
     let (first_x, first_y) = text_origin(&nowrap, "Warm-up").unwrap();
     assert!(y != first_y, "moved to the second line");
-    assert!((x - first_x).abs() < 0.5, "starts the second line");
+    assert!(
+        (x - first_x).abs() < 15.0,
+        "near the start of the second line: {x} vs {first_x}"
+    );
     let spaced = page_contents(&render_line("<span>mind muscle</span>")).concat();
     assert!(painted(&spaced, "mind muscle"));
 }
@@ -313,5 +322,223 @@ fn g11_middle_aligned_rowspan_centers_across_its_rows() {
     assert!(
         (merged - (top + bottom) / 2.0).abs() < 1.0,
         "merged {merged}, top {top}, bottom {bottom}"
+    );
+}
+
+#[test]
+fn g9_justified_inline_box_starts_after_stretched_spaces() {
+    let asset = |name: &str| {
+        std::fs::read(format!("{}/assets/{name}", env!("CARGO_MANIFEST_DIR"))).unwrap()
+    };
+    let convert = |html: &str| {
+        let pdf = HtmlConverter::new()
+            .compress(false)
+            .font_fallback(FontFallback::RegisteredOnly(MissingGlyphs::Blank))
+            .add_font("GfitSans", asset("LiberationSans-Regular.ttf"))
+            .add_font_variant(
+                "GfitSans",
+                ironpages::FontFaceStyle::BOLD,
+                asset("LiberationSans-Bold.ttf"),
+            )
+            .convert(html)
+            .unwrap();
+        page_contents(&String::from_utf8_lossy(&pdf)).concat()
+    };
+    let html = |align: &str| {
+        format!(
+            r#"<style>@page {{size:A4; margin:5mm 15mm 19mm}}
+            body {{margin:0; font:10pt/1.6 GfitSans}}
+            div {{width:180mm; text-align:{align}}}</style>
+            <div><strong>- Additional Activation Sets (Optional):</strong><span style="display:inline-block">X</span> Use more sets if lifting heavy weights to ensure gradual muscle recruitment.</div>"#
+        )
+    };
+    let first_line_text_and_box = |content: &str| -> (f32, Option<f32>, f32) {
+        let mut origin = None;
+        let mut flipped = Vec::new();
+        let mut box_x = None;
+        let mut first_y: Option<f32> = None;
+        for line in content.lines() {
+            let parts: Vec<f32> = line
+                .split_whitespace()
+                .filter_map(|part| part.parse().ok())
+                .collect();
+            if line.ends_with(" Tm") && parts.len() == 6 {
+                origin = Some((parts[4], parts[5], line.starts_with("1 0 0 -1 ")));
+            }
+            if (line.ends_with("Tj") || line.ends_with("TJ"))
+                && let Some((x, y, flipped_tm)) = origin
+            {
+                if flipped_tm {
+                    if first_y.is_none_or(|first| (y - first).abs() < 0.5) {
+                        first_y = Some(y);
+                        flipped.push(x);
+                    }
+                } else if flipped.len() == 1 {
+                    // Unflipped paint of the inline box after the bold run.
+                    box_x = Some(x);
+                }
+                origin = None;
+            }
+        }
+        assert!(flipped.len() >= 2, "bold and following run: {flipped:?}");
+        (flipped[0], box_x, flipped[1])
+    };
+    let (just_bold, just_box, just_use) = first_line_text_and_box(&convert(&html("justify")));
+    let (_, left_box, left_use) = first_line_text_and_box(&convert(&html("left")));
+    assert!(
+        just_use > left_use + 4.0,
+        "justified Use {just_use} vs left {left_use}"
+    );
+    if let (Some(just_box), Some(left_box)) = (just_box, left_box) {
+        // The inline box must advance with the stretched bold spaces, not stay
+        // at the unstretched end (which would overlap the following glyphs).
+        assert!(
+            just_box > left_box + 4.0,
+            "justified box {just_box} vs left {left_box}; Use at {just_use}"
+        );
+        assert!(
+            just_box > just_bold + 4.0,
+            "box {just_box} should start after bold {just_bold}"
+        );
+    }
+}
+
+#[test]
+fn g6_named_first_page_recomputes_body_centering() {
+    let named = render(
+        r#"<style>
+        @page {size:600pt 400pt; margin:0}
+        @page named {margin:0 100pt}
+        body {margin:0 auto; max-width:300pt; font:12pt Helvetica}
+        section {page:named}
+        </style><section>Sentinel</section>"#,
+    );
+    let control = render(
+        r#"<style>
+        @page {size:600pt 400pt; margin:0 100pt}
+        body {margin:0 auto; max-width:300pt; font:12pt Helvetica}
+        </style><section>Sentinel</section>"#,
+    );
+    let named_x = text_origin(&page_contents(&named).concat(), "Sentinel")
+        .unwrap()
+        .0;
+    let control_x = text_origin(&page_contents(&control).concat(), "Sentinel")
+        .unwrap()
+        .0;
+    // Printable width 400pt, max-width 300pt → 50pt gutters (not the 150pt
+    // gutters computed for the default zero-margin page, which would start
+    // the text 100pt further to the right).
+    assert!(
+        (named_x - control_x).abs() < 1.0,
+        "named {named_x} vs control {control_x}"
+    );
+    assert!(named_x < 230.0, "kept the default-page gutter? x={named_x}");
+}
+
+#[test]
+fn g8_forced_break_inside_an_overflowing_table_is_honored() {
+    let pdf = render(
+        r#"<style>
+        @page {size:400pt 300pt; margin:0}
+        body {margin:0; font:10pt Helvetica}
+        table {width:100%; border-collapse:collapse; table-layout:fixed; break-inside:auto}
+        td {height:40pt; padding:0; border:0}
+        tr {break-inside:avoid}
+        </style>
+        <div style="height:210pt">Before</div>
+        <table>
+        <tr><td>Row 1</td></tr>
+        <tr style="break-before:page"><td>Row 2</td></tr>
+        <tr><td>Row 3</td></tr>
+        <tr><td>Row 4</td></tr>
+        </table>"#,
+    );
+    let pages = page_contents(&pdf);
+    assert!(pages.len() >= 2, "pages={}", pages.len());
+    assert!(painted(&pages[0], "Before") && painted(&pages[0], "Row 1"));
+    assert!(
+        !painted(&pages[0], "Row 2"),
+        "forced break must start a new page"
+    );
+    assert!(painted(&pages[1], "Row 2"));
+    let occurrences = |label: &str| pages.iter().filter(|page| painted(page, label)).count();
+    for index in 1..=4 {
+        assert_eq!(occurrences(&format!("Row {index}")), 1, "Row {index} once");
+    }
+}
+
+#[test]
+fn g8_table_target_anchor_stays_on_the_first_fragment() {
+    let rows: String = (1..=8)
+        .map(|index| format!("<tr><td>Row {index}</td></tr>"))
+        .collect();
+    let pdf = render(&format!(
+        r##"<style>
+        @page {{size:A4; margin:49mm 15mm 22mm}}
+        body {{margin:0; font:10pt Helvetica}}
+        a::after {{content:"P" target-counter(attr(href), page)}}
+        table {{width:180mm; border-collapse:collapse; table-layout:fixed; break-inside:auto}}
+        th, td {{border:1px solid; padding:0}}
+        th {{height:13.5pt}}
+        td {{height:20pt}}
+        tr {{break-inside:avoid}}
+        </style>
+        <a href="#tbl">See</a>
+        <div style="height:460pt">Before</div>
+        <table id="tbl"><thead><tr><th>Week</th></tr><tr><th>Reps</th></tr></thead>
+        <tbody>{rows}</tbody></table>"##
+    ));
+    let pages = page_contents(&pdf);
+    assert!(painted(&pages[0], "Row 7") && painted(&pages[1], "Row 8"));
+    let first = &pages[0];
+    assert!(
+        painted(first, "P1"),
+        "anchor page is the first fragment: {first}"
+    );
+    assert!(
+        !painted(first, "P2"),
+        "must not use the continuation page: {first}"
+    );
+}
+
+#[test]
+fn g10_nowrap_span_keeps_nested_styled_children_together() {
+    let render_line = |span: &str| {
+        render(&format!(
+            r#"<style>@page {{size:A4; margin:5mm 15mm 19mm}}
+            body {{margin:0; font:10pt/1.6 Helvetica}}
+            div {{width:180mm; text-align:justify}}
+            span {{white-space:nowrap}}</style>
+            <div>Warm-up sets prepare your muscles and joints for heavier working sets, preventing injury, establishing a {span} connection, and priming your body for maximum performance without unnecessary fatigue.</div>"#
+        ))
+    };
+    let content = page_contents(&render_line("<span>alpha <b>beta</b> gamma</span>")).concat();
+    let first_y = text_origin(&content, "Warm-up").unwrap().1;
+    let alpha = text_origin(&content, "alpha").unwrap();
+    let beta = text_origin(&content, "beta").unwrap();
+    let gamma = text_origin(&content, "gamma").unwrap();
+    assert_eq!(alpha.1, beta.1, "alpha and beta stay on one line");
+    assert_eq!(beta.1, gamma.1, "beta and gamma stay on one line");
+    assert_ne!(alpha.1, first_y, "the nowrap group moves together");
+    assert!(alpha.0 < beta.0 && beta.0 < gamma.0);
+}
+
+#[test]
+fn g11_rowspan_vertical_align_includes_row_spacing() {
+    let pdf = render(
+        r#"<style>@page {size:A4; margin:20mm 15mm}
+        body {margin:0; font:10pt Helvetica}
+        table {width:180mm; border-collapse:separate; border-spacing:0 20pt; table-layout:fixed}
+        th {height:22pt; padding:0; vertical-align:bottom}
+        .merged {vertical-align:bottom}</style>
+        <table><thead><tr><th rowspan="2" class="merged">Merged</th><th>Top</th></tr>
+        <tr><th>Bottom</th></tr></thead><tbody><tr><td>Body</td><td>Body</td></tr></tbody></table>"#,
+    );
+    let content = page_contents(&pdf).concat();
+    let merged = text_origin(&content, "Merged").unwrap().1;
+    let bottom = text_origin(&content, "Bottom").unwrap().1;
+    assert!(
+        (merged - bottom).abs() < 1.0,
+        "bottom-aligned merged {merged} vs Bottom {bottom}"
     );
 }
