@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+
+- A `white-space: nowrap` inline span no longer pulls the word before it onto
+  the next line. The space in front of the span stays a soft wrap
+  opportunity, so only the span moves when it does not fit (2.1.1 kept the
+  span unbroken, but also treated that preceding space as unbreakable).
+
 ## [2.1.1] — 2026-11-26
 
 ### Fixed

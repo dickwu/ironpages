@@ -524,6 +524,42 @@ fn g10_nowrap_span_keeps_nested_styled_children_together() {
 }
 
 #[test]
+fn g10_nowrap_span_keeps_the_wrap_opportunity_before_it() {
+    // The space before a nowrap span is an ordinary soft wrap opportunity:
+    // only the span moves to the next line, not the word in front of it.
+    let render_line = |span: &str| {
+        render(&format!(
+            r#"<style>@page {{size:A4; margin:5mm 15mm 19mm}}
+            body {{margin:0; font:10pt/1.6 Helvetica}}
+            div {{width:180mm}}
+            span {{white-space:nowrap}}</style>
+            <div>Warm-up sets prepare your muscles and joints for heavier working sets, preventing injury, establishing a {span} connection, and priming your body for maximum performance without unnecessary fatigue.</div>"#
+        ))
+    };
+    let nowrap = page_contents(&render_line("<span>mind-muscle</span>")).concat();
+    assert!(
+        painted(&nowrap, "establishing a)"),
+        "the word before the span stays on the first line"
+    );
+    let (_, first_y) = text_origin(&nowrap, "Warm-up").unwrap();
+    let (_, span_y) = text_origin(&nowrap, "mind-muscle").unwrap();
+    assert!(
+        span_y != first_y,
+        "the nowrap span moves to the second line"
+    );
+    // The same line with the span inline-block is the reference layout.
+    let block = page_contents(&render_line(
+        r#"<span style="display:inline-block">mind-muscle</span>"#,
+    ))
+    .concat();
+    assert!(painted(&block, "establishing a)"));
+    // The span starts the second line, at the same left edge as the first.
+    let (first_x, _) = text_origin(&nowrap, "Warm-up").unwrap();
+    let (span_x, _) = text_origin(&nowrap, "mind-muscle").unwrap();
+    assert!((span_x - first_x).abs() < 0.01, "{span_x} vs {first_x}");
+}
+
+#[test]
 fn g11_rowspan_vertical_align_includes_row_spacing() {
     let pdf = render(
         r#"<style>@page {size:A4; margin:20mm 15mm}

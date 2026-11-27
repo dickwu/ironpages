@@ -1562,7 +1562,8 @@ fn push_word_with_hyphen_breaks(
 
 /// Width of the queued tokens that must stay on the current token's line
 /// because they come from a `white-space: nowrap` run and have no soft-wrap
-/// opportunity before them.
+/// opportunity before them. The scan stops at the first token with a break
+/// opportunity (e.g. the space in front of a nowrap span's first word).
 fn nowrap_tail_width(
     queue: &std::collections::VecDeque<StyledWord>,
     runs: &[TextRun],
@@ -1572,6 +1573,7 @@ fn nowrap_tail_width(
         .iter()
         .take_while(|token| {
             token.text != "\n"
+                && !token.break_before
                 && runs
                     .get(token.run_index)
                     .is_some_and(|run| run.metadata.no_wrap && run.inline_box.is_none())
