@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.15)
 
 project(ironpages_vcpkg_consumers LANGUAGES C CXX)
 
-find_package(Ironpages 2.1.1 EXACT CONFIG REQUIRED)
+find_package(Ironpages 2.1.2 EXACT CONFIG REQUIRED)
 
 add_executable(
     ironpages_c_consumer

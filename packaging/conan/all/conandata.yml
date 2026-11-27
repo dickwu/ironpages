@@ -1,9 +1,9 @@
-# Checksums from the immutable v2.1.1 archive and its tagged Cargo.lock.
+# Checksums from the immutable v2.1.2 archive and its tagged Cargo.lock.
 sources:
-  "2.1.1":
+  "2.1.2":
     archive:
-      url: "https://github.com/dickwu/ironpages/archive/refs/tags/v2.1.1.tar.gz"
+      url: "https://github.com/dickwu/ironpages/archive/refs/tags/v2.1.2.tar.gz"
       sha256: "44025fa2da33e5ac32f9951c5fb5e5764bfa661bf6ae3fd2b3a69d825cc51437"
     cargo_lock:
-      url: "https://raw.githubusercontent.com/dickwu/ironpages/v2.1.1/Cargo.lock"
+      url: "https://raw.githubusercontent.com/dickwu/ironpages/v2.1.2/Cargo.lock"
       sha256: "9a2e6402a2308846413d3f2adc286ee1037511bb45cdd19e59e2092eff409c9c"
