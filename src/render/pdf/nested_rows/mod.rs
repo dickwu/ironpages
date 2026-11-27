@@ -61,7 +61,13 @@ fn rowspan_cell_height(
     span: usize,
     row_height: f32,
 ) -> f32 {
-    let last = index + span.max(1) - 1;
+    if span <= 1 {
+        // A single-row cell is exactly its row. Re-deriving that height from
+        // the cursor walk would add float noise that tips pixel-snapped
+        // vertical alignment.
+        return row_height;
+    }
+    let last = index + span - 1;
     match (
         row_boxes.get(index).copied().flatten(),
         row_boxes.get(last).copied().flatten(),
@@ -309,4 +315,24 @@ fn render_row_pass(
         renderer.cursor_y,
         renderer.previous_margin_bottom,
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::rowspan_cell_height;
+
+    #[test]
+    fn single_row_cell_height_is_exactly_the_row_height() {
+        // Re-deriving it from the cursor walk yields 14.400002 for 14.400001,
+        // which tips pixel-snapped vertical alignment by a whole device pixel.
+        let boxes = [Some((87.75, 14.400001))];
+        let height = rowspan_cell_height(&boxes, 0, 1, 14.400001);
+        assert_eq!(height.to_bits(), 14.400001_f32.to_bits());
+    }
+
+    #[test]
+    fn rowspan_cell_height_includes_border_spacing_between_rows() {
+        let boxes = [Some((100.0, 20.0)), Some((77.0, 20.0))];
+        assert_eq!(rowspan_cell_height(&boxes, 0, 2, 20.0), 43.0);
+    }
 }
