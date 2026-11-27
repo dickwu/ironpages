@@ -12,7 +12,7 @@ Ironpages requires Java 17 or newer.
 <dependency>
   <groupId>io.github.dickwu</groupId>
   <artifactId>ironpages</artifactId>
-  <version>2.1.1</version>
+  <version>2.1.2</version>
 </dependency>
 ```
 
