@@ -57,7 +57,11 @@ pub(in crate::render::pdf) fn paint_horizontal_line_text(
         if run.text.is_empty() {
             continue;
         }
-        let width = estimate_run_width_with_fonts(run, custom_fonts);
+        let width = estimate_run_width_with_fonts(run, custom_fonts)
+            + super::super::text_runs::justification_advance(
+                &run.text,
+                paint.justification_word_spacing,
+            );
         let previous = runs[..index]
             .iter()
             .rev()
@@ -101,7 +105,11 @@ pub(in crate::render::pdf) fn paint_horizontal_line_text(
             page_images,
             paint.text_space,
         );
-        x += estimate_run_width_with_fonts(run, custom_fonts);
+        x += estimate_run_width_with_fonts(run, custom_fonts)
+            + super::super::text_runs::justification_advance(
+                &run.text,
+                paint.justification_word_spacing,
+            );
     }
     for (decoration, _) in &decorations {
         decoration.paint_below_text(content);

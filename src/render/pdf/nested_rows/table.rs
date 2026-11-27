@@ -284,7 +284,7 @@ impl NestedRowsRenderer<'_, '_> {
                     render_cell_content(
                         content,
                         &cell.layout,
-                        CellRenderBox::new(PdfPoint::new(cell_x, row_y), cell_w, row_height)
+                        CellRenderBox::new(PdfPoint::new(cell_x, row_y), cell_w, cell_height)
                             .with_baseline_shift(
                                 baseline_shifts.get(cell_idx).copied().unwrap_or(0.0),
                             ),

@@ -957,18 +957,36 @@ impl HtmlConverter {
         );
 
         // Step 5: Layout
-        let mut pages = layout::engine::layout_with_rules_and_fonts_raster_quality(
-            &result.nodes,
-            layout::engine::DocumentGeometry::new(effective_page_size, effective_margin)
-                .with_initial_containing_block(initial_containing_block),
-            &rules,
-            &parsed_fonts,
-            result.font_locale,
-            &page_background,
-            layout::paginate::PaginationContext::new(page_geometry, footnote_area, 0.0),
-            self.raster_quality,
-            &mut resource_loader,
-        );
+        let layout_pages =
+            |flow_margin: types::Margin,
+             resource_loader: &mut security::resources::ResourceLoader| {
+                layout::engine::layout_with_rules_and_fonts_raster_quality(
+                    &result.nodes,
+                    layout::engine::DocumentGeometry::new(effective_page_size, flow_margin)
+                        .with_initial_containing_block(initial_containing_block),
+                    &rules,
+                    &parsed_fonts,
+                    result.font_locale,
+                    &page_background,
+                    layout::paginate::PaginationContext::new(
+                        page_geometry.clone(),
+                        footnote_area,
+                        0.0,
+                    ),
+                    self.raster_quality,
+                    resource_loader,
+                )
+            };
+        let mut pages = layout_pages(effective_margin, &mut resource_loader);
+        // The document's inline size is that of its first page (as in
+        // Chromium's print layout). When the first page is a named page whose
+        // horizontal margins differ from the default page's, lay out again at
+        // the named page's width so its content is not scaled to fit.
+        if let Some(first_page_margin) =
+            named_first_page_flow_margin(&pages, effective_margin, default_page_area_margin)
+        {
+            pages = layout_pages(first_page_margin, &mut resource_loader);
+        }
         let mut footnote_area_for_overflow = footnote_area;
         footnote_area_for_overflow.content_width =
             effective_page_size.width - default_page_area_margin.horizontal();
@@ -5623,4 +5641,24 @@ body { background: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy
             let _ = html_to_pdf(&html);
         }
     }
+}
+
+/// Flow margin for a document whose first page is a named page with a
+/// different content width than the default page, or `None` when the first
+/// page uses the default width. Body margin, padding and centering gutters
+/// (`flow_margin - default_page_margin`) are kept on top of the named page's
+/// own horizontal margins.
+fn named_first_page_flow_margin(
+    pages: &[layout::engine::Page],
+    flow_margin: types::Margin,
+    default_page_margin: types::Margin,
+) -> Option<types::Margin> {
+    let first = pages.first()?;
+    first.page_name.as_ref()?;
+    let geometry = first.geometry?;
+    let left = geometry.margin.left + (flow_margin.left - default_page_margin.left);
+    let right = geometry.margin.right + (flow_margin.right - default_page_margin.right);
+    let unchanged =
+        (left - flow_margin.left).abs() < 0.01 && (right - flow_margin.right).abs() < 0.01;
+    (!unchanged).then(|| types::Margin::new(flow_margin.top, right, flow_margin.bottom, left))
 }

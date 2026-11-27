@@ -1,5 +1,25 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+
+- A first page with its own `@page` name and margins lays out at that page's
+  content width instead of being scaled down to fit it.
+- A table or box too tall for the rest of the page now splits even when a
+  forced page break follows it, so no rows are lost before a named-page
+  change.
+- A table that does not fit the rest of a page splits between rows (with its
+  header repeated) instead of moving whole to the next page; tables with
+  `break-inside: avoid` still move whole.
+- Justified text advances past the stretched spaces of each run, so a run
+  that follows a bold lead-in no longer overlaps it; underlines span the
+  stretched width.
+- `white-space: nowrap` inline spans are kept on one line, including at
+  hyphens.
+- `vertical-align: middle` and `bottom` in `rowspan` cells align across the
+  full spanned height.
+
 ## [2.1.0] — 2026-11-26
 
 ### Added

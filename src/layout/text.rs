@@ -421,6 +421,7 @@ pub(crate) fn text_run_metadata(style: &ComputedStyle) -> crate::layout::engine:
         spacing: crate::layout::elements::TextSpacing::from_style(style),
         text_combine_upright: style.text_combine_upright,
         is_drop_cap: false,
+        no_wrap: style.white_space == WhiteSpace::NoWrap,
         ..Default::default()
     }
 }
@@ -1559,6 +1560,36 @@ fn push_word_with_hyphen_breaks(
     }
 }
 
+/// Width of the queued tokens that must stay on the current token's line
+/// because they come from a `white-space: nowrap` run and have no soft-wrap
+/// opportunity before them.
+fn nowrap_tail_width(
+    queue: &std::collections::VecDeque<StyledWord>,
+    runs: &[TextRun],
+    fonts: &HashMap<String, TtfFont>,
+) -> f32 {
+    queue
+        .iter()
+        .take_while(|token| {
+            !token.break_before
+                && token.text != "\n"
+                && runs
+                    .get(token.run_index)
+                    .is_some_and(|run| run.metadata.no_wrap && run.inline_box.is_none())
+        })
+        .map(|token| {
+            let run = &runs[token.run_index];
+            let text = strip_soft_hyphens(&token.text);
+            let space = if token.joins_prev || token.preserve_spacing {
+                0.0
+            } else {
+                estimate_text_width_for_run(" ", run, fonts)
+            };
+            space + estimate_text_width_for_run(&text, run, fonts)
+        })
+        .sum()
+}
+
 fn strip_soft_hyphens(text: &str) -> String {
     if !text.contains('\u{00ad}') {
         return text.to_string();
@@ -2139,6 +2170,15 @@ fn tokenize_text_runs(runs: &[TextRun], options: TextWrapOptions) -> Vec<StyledW
         {
             first.joins_prev = true;
             first.break_before = false;
+        }
+        if run.metadata.no_wrap
+            && let Some(tokens) = styled_words.get_mut(first_word_idx + 1..)
+        {
+            // `white-space: nowrap` on the run's element: no soft wrap inside
+            // it, only at its edges (CSS Text 3 §3).
+            for token in tokens.iter_mut().filter(|token| token.text != "\n") {
+                token.break_before = false;
+            }
         }
         if keep_trailing_space_before_rtl
             && let Some(last) = styled_words.last_mut()
@@ -2774,8 +2814,17 @@ pub(crate) fn wrap_text_runs(
             fonts,
         );
         let effective_max_width = line_max_width(lines.len());
-        let overflows =
-            width_exceeds_limit(measurement.end_width(current_width), effective_max_width);
+        // A `white-space: nowrap` run has no break opportunity after this
+        // token: wrap before it when the unbreakable rest does not fit.
+        let nowrap_tail_width = if break_before && current_width > 0.0 {
+            nowrap_tail_width(&queue, &runs, fonts)
+        } else {
+            0.0
+        };
+        let overflows = width_exceeds_limit(
+            measurement.end_width(current_width) + nowrap_tail_width,
+            effective_max_width,
+        );
 
         // `overflow-wrap: break-word`/`anywhere` (and the `word-break: break-all`
         // alias) break inside a word only as a LAST RESORT (css-text-3 §5.2): a

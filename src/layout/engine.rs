@@ -840,6 +840,10 @@ pub struct TextRunMetadata {
     pub text_combine_upright: crate::style::computed::TextCombineUpright,
     pub is_drop_cap: bool,
     pub whitespace: RunWhitespace,
+    /// The run comes from an element with `white-space: nowrap`: its own
+    /// spaces and hyphens are not soft-wrap opportunities, even when the
+    /// surrounding paragraph wraps.
+    pub(crate) no_wrap: bool,
     pub(crate) inline_edge: Option<InlineEdge>,
     pub(crate) inline_decoration: Option<InlineDecorationId>,
     /// Inline geometry owned by the boundary after this run. Keeping tracking

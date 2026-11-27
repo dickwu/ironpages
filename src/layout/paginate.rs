@@ -2006,6 +2006,62 @@ fn split_container_node(
     Some((first, rest))
 }
 
+/// Split a table that does not fit the rest of the page between its rows,
+/// when the first fragment keeps at least one body row (CSS Fragmentation 3
+/// §4.4: a fragmentable box is broken rather than pushed whole to the next
+/// page). Tables with `break-inside: avoid` keep the move-whole behavior.
+fn split_table_between_rows(
+    element: &dyn LayoutElement,
+    avail_below_box_top: f32,
+) -> Option<(LayoutNode, LayoutNode)> {
+    struct TableSplit {
+        available: f32,
+        result: Option<(LayoutNode, LayoutNode)>,
+    }
+
+    impl LayoutVisitor for TableSplit {
+        fn visit_table(&mut self, element: &Table) {
+            self.result = split_table_node(element, self.available, FragmentBreakRule::Normal);
+        }
+    }
+
+    #[derive(Default)]
+    struct BodyRows(usize);
+
+    impl LayoutVisitor for BodyRows {
+        fn visit_table(&mut self, element: &Table) {
+            self.0 = element
+                .principal
+                .children
+                .iter()
+                .filter(|child| {
+                    let row = table_row_pagination_state(child.as_ref());
+                    row.is_row && !row.is_header && !row.is_footer
+                })
+                .count();
+        }
+    }
+
+    if element.box_fragmentation_owner().is_some_and(|owner| {
+        !owner
+            .box_fragmentation()
+            .permits_split(FragmentBreakRule::Normal)
+    }) {
+        return None;
+    }
+    let mut split = TableSplit {
+        available: avail_below_box_top,
+        result: None,
+    };
+    element.accept(&mut split);
+    let (first, rest) = split.result?;
+    let mut first_rows = BodyRows::default();
+    first.accept(&mut first_rows);
+    let mut rest_rows = BodyRows::default();
+    rest.accept(&mut rest_rows);
+    (first_rows.0 > 0 && rest_rows.0 > 0).then_some((first, rest))
+}
+
 fn split_table_node(
     element: &Table,
     avail_below_box_top: f32,
@@ -3223,6 +3279,48 @@ pub(crate) fn paginate_with_context(
                     continue;
                 }
             }
+            if !in_table_body
+                && avoid_group.is_none()
+                && table_keep_break_height.is_none()
+                && elem_position == Position::Static
+                && elem_float == Float::None
+            {
+                let avail_below_box_top = effective_content_height - (y + margin_top_val);
+                if let Some((first, rest)) =
+                    split_table_between_rows(element.as_ref(), avail_below_box_top)
+                {
+                    y += margin_top_val;
+                    collect_footnotes_from_element(&first, &mut current_footnotes);
+                    current_elements.push((y, first));
+                    let consumed_height = content_height;
+                    pages.push(Page {
+                        elements: std::mem::take(&mut current_elements),
+                        print_content_scale: Default::default(),
+                        document_svg_defs: Default::default(),
+                        generated_content: current_generated_content.snapshot_and_advance(),
+                        footnotes: std::mem::take(&mut current_footnotes),
+                        geometry: Some(current_page_geometry),
+                        page_name: active_page_type.name.clone(),
+                        is_blank: false,
+                    });
+                    current_page_geometry =
+                        active_page_type.geometry(&context.geometry, pages.len() + 1, false);
+                    content_height = current_page_geometry.content_height();
+                    repeated_decorations.append_to(&mut current_elements, current_page_geometry);
+                    y = 0.0;
+                    prev_margin_bottom = 0.0;
+                    first_on_page = true;
+                    on_first_page = false;
+                    left_floats.clear();
+                    right_floats.clear();
+                    advance_positioned_ancestors_after_page_break(
+                        &mut positioned_y_by_depth,
+                        consumed_height,
+                    );
+                    work.push_front(PendingElement::continuation(rest));
+                    continue;
+                }
+            }
             if in_table_body && elem_position == Position::Static && elem_float == Float::None {
                 let avail_below_box_top = effective_content_height - (y + margin_top_val);
                 if let Some((first, rest)) =
@@ -3364,9 +3462,6 @@ pub(crate) fn paginate_with_context(
         // resolve (i.e. taller than a full empty page, or a too-tall box already
         // at the page top). Every box that fits — the entire existing corpus —
         // skips this block and takes the unchanged whole-placement path below.
-        let followed_by_forced_break = work
-            .front()
-            .is_some_and(|pending| page_break_data(pending.element.as_ref()).is_some());
         let avail_below_box_top = effective_content_height - (y + effective_margin_top);
         // A forced break retained inside this box occurs before any top-level
         // break marker that follows the box. The following marker must not make
@@ -3390,7 +3485,6 @@ pub(crate) fn paginate_with_context(
             continue;
         }
         if elem_position == Position::Static
-            && !followed_by_forced_break
             && may_fragment_internally
             && exceeds_with_roundoff(y + effective_element_height, effective_content_height)
         {

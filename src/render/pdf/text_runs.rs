@@ -316,13 +316,15 @@ pub(super) fn render_run_glyph_layers_in_space(
                     if let Some(end) = text_space.end_operator() {
                         content.push_str(end);
                     }
+                    let w = w + justification_advance(&sub_run.text, justification_word_spacing);
                     cur_x += w;
                     total_width += w;
                 } else if crate::font_options::blanks_missing_glyphs() {
                     // No allowed font covers the segment: leave it blank, keeping
                     // the advance layout measured for it.
                     crate::font_options::record_missing(sub_run.text.chars());
-                    let w = estimate_run_width_with_fonts(&sub_run, custom_fonts);
+                    let w = estimate_run_width_with_fonts(&sub_run, custom_fonts)
+                        + justification_advance(&sub_run.text, justification_word_spacing);
                     cur_x += w;
                     total_width += w;
                 }
@@ -353,10 +355,12 @@ pub(super) fn render_run_glyph_layers_in_space(
     }
 
     let shaped = crate::text::shape_text_run(run, custom_fonts);
+    // The painted advance includes the justification spacing added to each
+    // space, so the next run on a justified line starts after this one ends.
     let run_width = shaped.as_ref().map_or_else(
         || estimate_run_width_with_fonts(run, custom_fonts),
         |shaped| run.text_advance(shaped.width, &run.text),
-    );
+    ) + justification_advance(&run.text, justification_word_spacing);
     let custom_font = crate::text::resolve_custom_font(
         &run.font_family,
         run.bold,
@@ -460,6 +464,15 @@ pub(super) fn render_run_glyph_layers_in_space(
         content.push_str(end);
     }
     run_width
+}
+
+/// Extra advance justification adds to `text`: `word_spacing` per U+0020,
+/// matching the spaces the line's justification divided its slack among.
+pub(super) fn justification_advance(text: &str, word_spacing: f32) -> f32 {
+    if word_spacing == 0.0 {
+        return 0.0;
+    }
+    text.matches(' ').count() as f32 * word_spacing
 }
 
 fn run_paint_baseline(run: &TextRun, text_y: f32, parent_font_size: f32) -> f32 {
