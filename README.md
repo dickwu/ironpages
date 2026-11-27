@@ -155,6 +155,7 @@ let pdf = HtmlConverter::new()
 - `RasterQuality` sets the physical DPI for source images, filters, and flattened backgrounds in one place, without changing page geometry.
 - `.compress(...)`, `.jpeg_quality(...)`, and `.auto_resize_images(...)` tune output size.
 - `.base_path(...)` and `.resource_root(...)` grant access to local assets.
+- `.page_layout(...)` and `.open_zoom(...)` set how a PDF viewer opens the document (see [Viewer presentation](#viewer-presentation)).
 
 ### Measuring flow heights
 
@@ -220,6 +221,71 @@ let pdf = HtmlConverter::new()
 The `lang` attribute selects regional glyph forms. See
 [Font System](../../wiki/Font-System) and [font-packs/README.md](font-packs/README.md).
 
+### Bold and italic faces
+
+Register each face of a family under the same name. CSS `font-weight: bold`
+(any weight from 600) and `font-style: italic` select the matching face, and a
+face you leave out is synthesized from the regular face:
+
+```rust
+use ironpages::{FontFaceStyle, HtmlConverter};
+
+let pdf = HtmlConverter::new()
+    .add_font("Brand", std::fs::read("Brand-Regular.ttf")?)
+    .add_font_variant("Brand", FontFaceStyle::BOLD, std::fs::read("Brand-Bold.ttf")?)
+    .add_font_variant("Brand", FontFaceStyle::ITALIC, std::fs::read("Brand-Italic.ttf")?)
+    .add_font_variant("Brand", FontFaceStyle::BOLD_ITALIC, std::fs::read("Brand-BoldItalic.ttf")?)
+    .convert(r#"<p style="font-family: Brand">Regular <b>bold</b> <i>italic</i></p>"#)?;
+```
+
+`FontFaceStyle::from_css_weight(700, false)` builds a style from a CSS weight.
+
+### Registered fonts only
+
+By default, text a registered font cannot draw falls back to host system
+fonts, the bundled Liberation and Noto faces, and platform CJK and emoji
+fonts. `FontFallback::RegisteredOnly` draws only with fonts you register
+(`add_font`, `add_font_variant`, `add_font_pack`, or `@font-face` with a
+`url()` source), so the same input produces the same PDF on every host:
+
+```rust
+use ironpages::{FontFallback, HtmlConverter, MissingGlyphs};
+
+let pdf = HtmlConverter::new()
+    .add_font("Brand", std::fs::read("Brand-Regular.ttf")?)
+    .font_fallback(FontFallback::RegisteredOnly(MissingGlyphs::Blank))
+    .convert(r#"<p style="font-family: Brand">Name 中文 😀 end</p>"#)?;
+```
+
+- Standard and generic family names that you have not registered
+  (`Helvetica`, `Arial`, `Times`, `Courier`, `serif`, `sans-serif`,
+  `monospace`) draw with the PDF Base-14 fonts, which every viewer provides.
+- `MissingGlyphs::Blank` leaves a character no allowed font covers blank and
+  keeps the space layout measured for it.
+- `MissingGlyphs::Error` fails the conversion with `IronpagesError::FontError`
+  listing every uncovered character, before any PDF bytes are written.
+
+Each PDF lists only the standard fonts its content uses.
+
+## Viewer presentation
+
+Set the page arrangement and zoom a PDF viewer uses when the document opens
+(the catalog `/PageLayout` and `/OpenAction`):
+
+```rust
+use ironpages::{HtmlConverter, OpenZoom, PageLayout};
+
+let pdf = HtmlConverter::new()
+    .page_layout(PageLayout::SinglePage)
+    .open_zoom(OpenZoom::FitPage)
+    .convert("<h1>Opens one whole page at a time</h1>")?;
+```
+
+`PageLayout` offers `SinglePage`, `OneColumn`, `TwoColumnLeft`,
+`TwoColumnRight`, `TwoPageLeft`, and `TwoPageRight`. `OpenZoom` offers
+`FitPage`, `FitWidth`, `FitHeight`, and `Percent(f32)` (`Percent(100.0)` is
+actual size).
+
 ## Math
 
 ```markdown
@@ -263,7 +329,7 @@ byte[] pdf = converter.ConvertHtml("<h1>Hello</h1>");
 <dependency>
   <groupId>io.github.dickwu</groupId>
   <artifactId>ironpages</artifactId>
-  <version>2.0.1</version>
+  <version>2.1.0</version>
 </dependency>
 ```
 

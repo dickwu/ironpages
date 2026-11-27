@@ -203,6 +203,10 @@ pub(super) fn foundation_run_outline(
     let mut builder = tiny_skia::PathBuilder::new();
     let mut pen_x = 0.0;
     for shaped in glyphs {
+        if !crate::font_options::paints_glyph(shaped.glyph_id, &shaped.unicode) {
+            pen_x += shaped.x_advance * points_to_pixels;
+            continue;
+        }
         let glyph = outlines.get(skrifa::GlyphId::new(u32::from(shaped.glyph_id)))?;
         let glyph_origin = positioning.glyph_origin(
             pen_x + shaped.x_offset * points_to_pixels,

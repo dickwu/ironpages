@@ -1645,13 +1645,18 @@ fn emit_custom_svg_text_with_tracking(
         if glyph_index > 0 {
             out.push(' ');
         }
-        out.push('<');
-        out.push_str(&run.prepared.map_or_else(
-            || crate::render::pdf::encode_pdf_hex_glyph(glyph.glyph_id),
-            |prepared| prepared.encode_glyph(glyph.glyph_id),
-        ));
-        out.push('>');
-        let nominal = run.face.font().glyph_width_scaled(glyph.glyph_id, size);
+        // A blank (unpainted) glyph keeps its advance as a pure TJ displacement.
+        let nominal = if crate::font_options::paints_glyph(glyph.glyph_id, &glyph.unicode) {
+            out.push('<');
+            out.push_str(&run.prepared.map_or_else(
+                || crate::render::pdf::encode_pdf_hex_glyph(glyph.glyph_id),
+                |prepared| prepared.encode_glyph(glyph.glyph_id),
+            ));
+            out.push('>');
+            run.face.font().glyph_width_scaled(glyph.glyph_id, size)
+        } else {
+            0.0
+        };
         let tracking = if tracking_after.get(glyph_index).copied().unwrap_or(false) {
             letter_spacing
         } else {

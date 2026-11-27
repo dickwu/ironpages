@@ -134,16 +134,18 @@ pub(super) fn append_positioned_shaped_text(content: &mut String, render: Shaped
         let draw_x = cursor_x + glyph.x_offset * render.layout_to_text_scale;
         let draw_y =
             render.origin.y + glyph.y_offset * render.layout_to_text_scale * render.text_y_axis;
-        let encoded = render.encode_glyph(glyph.glyph_id);
-        content.push_str(&format!(
-            "{} 0 {} {} {} {} Tm\n",
-            format_pdf_number(render.scale_x),
-            format_pdf_number(render.shear),
-            format_pdf_number(render.text_y_axis),
-            format_pdf_number(draw_x),
-            format_pdf_number(draw_y),
-        ));
-        content.push_str(&format!("<{encoded}> Tj\n"));
+        if crate::font_options::paints_glyph(glyph.glyph_id, &glyph.unicode) {
+            let encoded = render.encode_glyph(glyph.glyph_id);
+            content.push_str(&format!(
+                "{} 0 {} {} {} {} Tm\n",
+                format_pdf_number(render.scale_x),
+                format_pdf_number(render.shear),
+                format_pdf_number(render.text_y_axis),
+                format_pdf_number(draw_x),
+                format_pdf_number(draw_y),
+            ));
+            content.push_str(&format!("<{encoded}> Tj\n"));
+        }
         cursor_x += glyph.x_advance * render.layout_to_text_scale;
         if idx < last_idx {
             cursor_x += render.letter_spacing;
@@ -169,16 +171,18 @@ pub(super) fn append_positioned_vertical_shaped_text(
 ) {
     let mut cursor_y = origin.y;
     for glyph in &shaped.glyphs {
-        let encoded = prepared_font.map_or_else(
-            || encode_pdf_hex_glyph(glyph.glyph_id),
-            |font| font.encode_glyph(glyph.glyph_id),
-        );
-        content.push_str(&format!(
-            "1 0 0 1 {} {} Tm\n",
-            format_pdf_number(origin.x + glyph.x_offset),
-            format_pdf_number(cursor_y + glyph.y_offset),
-        ));
-        content.push_str(&format!("<{encoded}> Tj\n"));
+        if crate::font_options::paints_glyph(glyph.glyph_id, &glyph.unicode) {
+            let encoded = prepared_font.map_or_else(
+                || encode_pdf_hex_glyph(glyph.glyph_id),
+                |font| font.encode_glyph(glyph.glyph_id),
+            );
+            content.push_str(&format!(
+                "1 0 0 1 {} {} Tm\n",
+                format_pdf_number(origin.x + glyph.x_offset),
+                format_pdf_number(cursor_y + glyph.y_offset),
+            ));
+            content.push_str(&format!("<{encoded}> Tj\n"));
+        }
         cursor_y += glyph.y_advance;
     }
 }
@@ -202,14 +206,17 @@ pub(super) fn append_tj_shaped_text(content: &mut String, render: ShapedTextRend
         }
         first = false;
 
-        let encoded = render.encode_glyph(glyph.glyph_id);
-        content.push('<');
-        content.push_str(&encoded);
-        content.push('>');
-
-        let nominal_advance = render
-            .font
-            .glyph_width_scaled(glyph.glyph_id, render.font_size);
+        // A blank (unpainted) glyph keeps its advance as a pure TJ displacement.
+        let nominal_advance = if crate::font_options::paints_glyph(glyph.glyph_id, &glyph.unicode) {
+            content.push('<');
+            content.push_str(&render.encode_glyph(glyph.glyph_id));
+            content.push('>');
+            render
+                .font
+                .glyph_width_scaled(glyph.glyph_id, render.font_size)
+        } else {
+            0.0
+        };
         let advance_adjustment = glyph.x_advance * render.layout_to_text_scale - nominal_advance;
         // Fold the shaper advance/kerning delta together with any extra
         // inter-word spacing (CSS word-spacing + justify stretch) for space

@@ -83,6 +83,8 @@ pub(crate) mod bounded_cache;
 pub mod cli;
 /// Error types for conversion failures.
 pub mod error;
+/// Font registration and font-source options.
+pub mod font_options;
 /// Optional fallback-font packs.
 pub mod font_pack;
 pub(crate) mod fonts;
@@ -97,12 +99,16 @@ pub(crate) mod text;
 /// Public types: page size, margins, and colors.
 pub mod types;
 pub(crate) mod util;
+/// How a PDF viewer presents the document when it opens.
+pub mod viewer;
 
 pub use error::IronpagesError;
+pub use font_options::{FontFaceStyle, FontFallback, MissingGlyphs};
 pub use font_pack::{FontPack, FontPackError, FontPackKind, UnknownFontPackKind};
 pub use security::resources::{InvalidRemoteHost, NetworkPolicy, RemoteHost};
 pub use style::raster_quality::{CoverageCompression, JpegCompression, RasterQuality};
 pub use types::{CornerRadii, CornerRadius, EdgeSizes, Margin, PageSize};
+pub use viewer::{OpenZoom, PageLayout, ViewerPreferences};
 
 /// Convert an HTML string to PDF bytes using default settings (A4, 1-inch margins).
 ///
@@ -249,6 +255,10 @@ pub struct HtmlConverter {
     occlusion_cull: bool,
     /// Lay out table cells with Ironpress 1.4 metrics (default false).
     legacy_table_cell_metrics: bool,
+    /// Which fonts the conversion may draw with.
+    font_fallback: FontFallback,
+    /// Catalog `/PageLayout` and `/OpenAction` presentation.
+    viewer: ViewerPreferences,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -281,6 +291,8 @@ impl HtmlConverter {
             raster_quality: RasterQuality::default(),
             occlusion_cull: false,
             legacy_table_cell_metrics: false,
+            font_fallback: FontFallback::default(),
+            viewer: ViewerPreferences::default(),
         }
     }
 
@@ -409,6 +421,86 @@ impl HtmlConverter {
     pub fn add_font(mut self, name: &str, ttf_data: Vec<u8>) -> Self {
         self.custom_fonts
             .insert(name.to_ascii_lowercase(), ttf_data);
+        self
+    }
+
+    /// Register one weight/slant face of a font family.
+    ///
+    /// Register the regular face with [`add_font`](Self::add_font) (or
+    /// [`FontFaceStyle::REGULAR`]) and the other faces of the same family
+    /// here. CSS `font-weight: bold` (600 and above) and `font-style: italic`
+    /// then select the matching face; a face that is not registered is
+    /// synthesized from the regular face.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ironpages::{FontFaceStyle, HtmlConverter};
+    ///
+    /// let pdf = HtmlConverter::new()
+    ///     .add_font("Brand", std::fs::read("Brand-Regular.ttf").unwrap())
+    ///     .add_font_variant("Brand", FontFaceStyle::BOLD, std::fs::read("Brand-Bold.ttf").unwrap())
+    ///     .add_font_variant("Brand", FontFaceStyle::ITALIC, std::fs::read("Brand-Italic.ttf").unwrap())
+    ///     .convert(r#"<p style="font-family: Brand">Regular <b>bold</b> <i>italic</i></p>"#)
+    ///     .unwrap();
+    /// ```
+    pub fn add_font_variant(mut self, name: &str, style: FontFaceStyle, ttf_data: Vec<u8>) -> Self {
+        self.custom_fonts.insert(style.key(name), ttf_data);
+        self
+    }
+
+    /// Choose which fonts the conversion may draw with (default
+    /// [`FontFallback::System`]).
+    ///
+    /// [`FontFallback::RegisteredOnly`] never embeds a host or bundled font:
+    /// text draws with registered fonts, unregistered standard names draw
+    /// with the PDF Base-14 fonts, and characters no allowed font covers are
+    /// left blank or fail the conversion, per [`MissingGlyphs`].
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ironpages::{FontFallback, HtmlConverter, MissingGlyphs};
+    ///
+    /// let pdf = HtmlConverter::new()
+    ///     .add_font("Brand", std::fs::read("Brand-Regular.ttf").unwrap())
+    ///     .font_fallback(FontFallback::RegisteredOnly(MissingGlyphs::Blank))
+    ///     .convert(r#"<p style="font-family: Brand">Same PDF on every host</p>"#)
+    ///     .unwrap();
+    /// ```
+    pub fn font_fallback(mut self, fallback: FontFallback) -> Self {
+        self.font_fallback = fallback;
+        self
+    }
+
+    /// Set the page arrangement a viewer uses when the document opens.
+    pub fn page_layout(mut self, layout: PageLayout) -> Self {
+        self.viewer.page_layout = Some(layout);
+        self
+    }
+
+    /// Set the zoom a viewer applies to the first page when the document opens.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use ironpages::{HtmlConverter, OpenZoom, PageLayout};
+    ///
+    /// let pdf = HtmlConverter::new()
+    ///     .page_layout(PageLayout::SinglePage)
+    ///     .open_zoom(OpenZoom::FitPage)
+    ///     .convert("<p>Opens one full page at a time</p>")
+    ///     .unwrap();
+    /// assert!(String::from_utf8_lossy(&pdf).contains("/PageLayout /SinglePage"));
+    /// ```
+    pub fn open_zoom(mut self, zoom: OpenZoom) -> Self {
+        self.viewer.open_zoom = Some(zoom);
+        self
+    }
+
+    /// Set every viewer presentation option at once.
+    pub fn viewer_preferences(mut self, preferences: ViewerPreferences) -> Self {
+        self.viewer = preferences;
         self
     }
 
@@ -580,6 +672,7 @@ impl HtmlConverter {
     ) -> Result<(), IronpagesError> {
         let _metrics =
             layout::compat::LegacyTableCellMetricsScope::enter(self.legacy_table_cell_metrics);
+        let _fonts = font_options::FontFallbackScope::enter(self.font_fallback);
         let doc = self.layout_document(html)?;
 
         // Step 6: Render PDF
@@ -624,6 +717,7 @@ impl HtmlConverter {
             auto_resize_images: self.auto_resize_images,
             raster_quality: self.raster_quality,
             occlusion_cull: self.occlusion_cull,
+            viewer: self.viewer,
         };
 
         render::pdf::render_pdf_to_writer_full_opts_with_resources(
@@ -647,6 +741,7 @@ impl HtmlConverter {
     fn layout_document(&self, html: &str) -> Result<LaidOutDocument, IronpagesError> {
         let _metrics =
             layout::compat::LegacyTableCellMetricsScope::enter(self.legacy_table_cell_metrics);
+        let _fonts = font_options::FontFallbackScope::enter(self.font_fallback);
         let resources = security::resources::DocumentResources::new(
             self.resources.base.as_deref(),
             self.resources.authorized_root.as_deref(),
@@ -829,18 +924,22 @@ impl HtmlConverter {
         // Step 4: Parse custom fonts (API-registered + @font-face from CSS)
         let mut parsed_fonts = self.parse_custom_fonts();
 
-        system_fonts::load_system_default_fonts(&mut parsed_fonts);
-        system_fonts::load_bundled_liberation_fonts(&mut parsed_fonts);
-        let requested_font_rules = rules_with_font_face_local_sources(&rules, &font_face_rules);
-        system_fonts::load_requested_system_fonts(
-            &result.nodes,
-            &requested_font_rules,
-            &mut parsed_fonts,
-        );
+        if self.font_fallback.loads_unregistered_fonts() {
+            system_fonts::load_system_default_fonts(&mut parsed_fonts);
+            system_fonts::load_bundled_liberation_fonts(&mut parsed_fonts);
+            let requested_font_rules = rules_with_font_face_local_sources(&rules, &font_face_rules);
+            system_fonts::load_requested_system_fonts(
+                &result.nodes,
+                &requested_font_rules,
+                &mut parsed_fonts,
+            );
+        }
         load_font_face_rules(&font_face_rules, &mut resource_loader, &mut parsed_fonts);
-        // Load system CJK font BEFORE bundled fallbacks so it gets UNICODE_FALLBACK_KEY
-        system_fonts::load_unicode_fallback_font(&mut parsed_fonts);
-        system_fonts::load_emoji_fallback_font(&mut parsed_fonts);
+        if self.font_fallback.loads_unregistered_fonts() {
+            // Load system CJK font BEFORE bundled fallbacks so it gets UNICODE_FALLBACK_KEY
+            system_fonts::load_unicode_fallback_font(&mut parsed_fonts);
+            system_fonts::load_emoji_fallback_font(&mut parsed_fonts);
+        }
 
         let mut page_sheet_descriptors = parser::css::PageSheetDescriptors::default();
         for pr in &page_rules {
@@ -2025,10 +2124,15 @@ mod tests {
     #[test]
     fn html_to_pdf_with_formatting() {
         let html = "<p>Normal <strong>bold</strong> <em>italic</em> <u>underline</u></p>";
-        let pdf = html_to_pdf(html).unwrap();
+        let pdf = crate::HtmlConverter::new()
+            .font_fallback(crate::FontFallback::RegisteredOnly(
+                crate::MissingGlyphs::Blank,
+            ))
+            .convert(html)
+            .unwrap();
         let content = String::from_utf8_lossy(&pdf);
-        assert!(content.contains("Helvetica-Bold"));
-        assert!(content.contains("Helvetica-Oblique"));
+        assert!(content.contains("Times-Bold"));
+        assert!(content.contains("Times-Italic"));
     }
 
     #[test]
@@ -2275,10 +2379,15 @@ mod tests {
             </body>
             </html>
         "#;
-        let pdf = html_to_pdf(html).unwrap();
+        let pdf = crate::HtmlConverter::new()
+            .font_fallback(crate::FontFallback::RegisteredOnly(
+                crate::MissingGlyphs::Blank,
+            ))
+            .convert(html)
+            .unwrap();
         let content = String::from_utf8_lossy(&pdf);
         assert!(content.contains("1 0 0 rg")); // red color
-        assert!(content.contains("Helvetica-Bold")); // bold from .highlight
+        assert!(content.contains("Times-Bold")); // bold from .highlight
     }
 
     #[test]
@@ -2310,10 +2419,15 @@ mod tests {
 
     #[test]
     fn markdown_to_pdf_formatting() {
-        let pdf = markdown_to_pdf("**bold** and *italic*").unwrap();
+        let pdf = crate::HtmlConverter::new()
+            .font_fallback(crate::FontFallback::RegisteredOnly(
+                crate::MissingGlyphs::Blank,
+            ))
+            .convert_markdown("**bold** and *italic*")
+            .unwrap();
         let content = String::from_utf8_lossy(&pdf);
-        assert!(content.contains("Helvetica-Bold"));
-        assert!(content.contains("Helvetica-Oblique"));
+        assert!(content.contains("Times-Bold"));
+        assert!(content.contains("Times-Italic"));
     }
 
     #[test]
@@ -2468,7 +2582,12 @@ fn main() {
             <p style="font-family: serif">Serif text</p>
             <p style="font-family: monospace">Mono text</p>
         "#;
-        let pdf = html_to_pdf(html).unwrap();
+        let pdf = crate::HtmlConverter::new()
+            .font_fallback(crate::FontFallback::RegisteredOnly(
+                crate::MissingGlyphs::Blank,
+            ))
+            .convert(html)
+            .unwrap();
         let content = String::from_utf8_lossy(&pdf);
         assert!(content.contains("Times-Roman"));
         assert!(content.contains("Courier"));
@@ -3154,7 +3273,12 @@ fn main() {
 
     #[test]
     fn custom_font_falls_back_to_helvetica_when_not_registered() {
-        let pdf = html_to_pdf(r#"<p style="font-family: 'UnknownFont'">Text</p>"#).unwrap();
+        let pdf = crate::HtmlConverter::new()
+            .font_fallback(crate::FontFallback::RegisteredOnly(
+                crate::MissingGlyphs::Blank,
+            ))
+            .convert(r#"<p style="font-family: 'UnknownFont'">Text</p>"#)
+            .unwrap();
         let content = String::from_utf8_lossy(&pdf);
         assert!(
             content.contains("/Helvetica"),
@@ -3164,7 +3288,12 @@ fn main() {
 
     #[test]
     fn missing_system_font_in_stack_falls_back_to_later_family() {
-        let pdf = html_to_pdf(r#"<p style="font-family: MissingFont, serif">Text</p>"#).unwrap();
+        let pdf = crate::HtmlConverter::new()
+            .font_fallback(crate::FontFallback::RegisteredOnly(
+                crate::MissingGlyphs::Blank,
+            ))
+            .convert(r#"<p style="font-family: MissingFont, serif">Text</p>"#)
+            .unwrap();
         let content = String::from_utf8_lossy(&pdf);
         assert!(
             !content.contains("/missingfont"),
@@ -3206,6 +3335,7 @@ fn main() {
     fn add_font_standard_fonts_still_work() {
         let ttf_data = build_integration_test_ttf();
         let pdf = HtmlConverter::new()
+            .font_fallback(FontFallback::RegisteredOnly(MissingGlyphs::Blank))
             .add_font("testfont", ttf_data)
             .convert(
                 r#"<p style="font-family: testfont">A</p>
@@ -3216,7 +3346,6 @@ fn main() {
         let content = String::from_utf8_lossy(&pdf);
         assert!(content.contains("/testfont"));
         assert!(content.contains("/Times-Roman"));
-        assert!(content.contains("/Helvetica"));
     }
 
     #[test]
@@ -3317,6 +3446,7 @@ fn main() {
     #[test]
     fn add_font_invalid_ttf_data_gracefully_degrades() {
         let pdf = HtmlConverter::new()
+            .font_fallback(FontFallback::RegisteredOnly(MissingGlyphs::Blank))
             .add_font("badfont", vec![0, 1, 2, 3])
             .convert(r#"<p style="font-family: badfont">Text</p>"#)
             .unwrap();
@@ -3378,6 +3508,7 @@ fn main() {
     fn custom_font_mixed_with_standard_in_same_paragraph() {
         let ttf_data = build_integration_test_ttf();
         let pdf = HtmlConverter::new()
+            .font_fallback(FontFallback::RegisteredOnly(MissingGlyphs::Blank))
             .add_font("testfont", ttf_data)
             .convert(
                 r#"<p><span style="font-family: testfont">A</span> and <span style="font-family: serif">Serif</span></p>"#,

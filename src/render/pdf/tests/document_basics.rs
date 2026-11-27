@@ -9,8 +9,8 @@ fn render_simple_pdf() {
     // Valid PDF ends with %%EOF
     let content = String::from_utf8_lossy(&pdf);
     assert!(content.contains("%%EOF"));
-    // Contains Helvetica font
-    assert!(content.contains("/Helvetica"));
+    // The UA default font family is serif
+    assert!(content.contains("/Times-Roman"));
 }
 
 #[test]
@@ -19,8 +19,8 @@ fn render_bold_italic() {
     let pages = layout(&nodes, PageSize::A4, Margin::default());
     let pdf = render_pdf(&pages, PageSize::A4, Margin::default()).unwrap();
     let content = String::from_utf8_lossy(&pdf);
-    assert!(content.contains("/Helvetica-Bold"));
-    assert!(content.contains("/Helvetica-Oblique"));
+    assert!(content.contains("/Times-Bold"));
+    assert!(content.contains("/Times-Italic"));
 }
 
 #[test]
@@ -88,7 +88,7 @@ fn render_bold_italic_combined() {
     let pages = layout(&nodes, PageSize::A4, Margin::default());
     let pdf = render_pdf(&pages, PageSize::A4, Margin::default()).unwrap();
     let content = String::from_utf8_lossy(&pdf);
-    assert!(content.contains("/Helvetica-BoldOblique"));
+    assert!(content.contains("/Times-BoldItalic"));
 }
 
 #[test]

@@ -318,6 +318,13 @@ pub(super) fn render_run_glyph_layers_in_space(
                     }
                     cur_x += w;
                     total_width += w;
+                } else if crate::font_options::blanks_missing_glyphs() {
+                    // No allowed font covers the segment: leave it blank, keeping
+                    // the advance layout measured for it.
+                    crate::font_options::record_missing(sub_run.text.chars());
+                    let w = estimate_run_width_with_fonts(&sub_run, custom_fonts);
+                    cur_x += w;
+                    total_width += w;
                 }
             } else {
                 let w = render_run_glyph_layers_in_space(

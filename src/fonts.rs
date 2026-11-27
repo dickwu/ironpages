@@ -582,6 +582,18 @@ const COURIER_WIDTH: u16 = 600;
 /// For `FontFamily::Custom` this falls back to Helvetica metrics (callers
 /// should prefer TTF metrics when the custom font data is available).
 pub(crate) fn char_width(ch: char, font_size: f32, font_family: &FontFamily, bold: bool) -> f32 {
+    // Under `FontFallback::RegisteredOnly` a character WinAnsi cannot encode
+    // is painted as a blank no-break space (or not at all when invisible), so
+    // it measures as exactly that.
+    let ch = if crate::render::pdf::is_winansi_char(ch)
+        || !crate::font_options::blanks_missing_glyphs()
+    {
+        ch
+    } else if crate::font_options::is_invisible(ch) {
+        return 0.0;
+    } else {
+        ' '
+    };
     let afm = match font_family {
         FontFamily::Courier => COURIER_WIDTH,
         FontFamily::Helvetica | FontFamily::Custom(_) => helvetica_char_afm(ch, bold),

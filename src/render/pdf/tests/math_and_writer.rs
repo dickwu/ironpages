@@ -197,14 +197,6 @@
     // ── Math integration via HTML ───────────────────────────────────────
 
     #[test]
-    fn math_inline_produces_symbol_font_in_pdf() {
-        let html = r#"<span class="math-inline" data-math="\alpha + \beta">α+β</span>"#;
-        let pdf = crate::html_to_pdf(html).unwrap();
-        let text = String::from_utf8_lossy(&pdf);
-        assert!(text.contains("/Symbol"));
-    }
-
-    #[test]
     fn math_display_produces_valid_pdf() {
         let html = r#"<div class="math-display" data-math="\frac{a}{b}">a/b</div>"#;
         let pdf = crate::html_to_pdf(html).unwrap();

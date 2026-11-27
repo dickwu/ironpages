@@ -11,6 +11,8 @@ pub(crate) struct RenderOpts {
     /// Skip embedding raster images fully covered by a later fully-opaque
     /// rectangular element (default false). Conservative; zero visual change.
     pub occlusion_cull: bool,
+    /// Catalog `/PageLayout` and `/OpenAction` presentation.
+    pub viewer: crate::viewer::ViewerPreferences,
 }
 
 impl Default for RenderOpts {
@@ -21,6 +23,7 @@ impl Default for RenderOpts {
             auto_resize_images: true,
             raster_quality: crate::style::raster_quality::RasterQuality::default(),
             occlusion_cull: false,
+            viewer: crate::viewer::ViewerPreferences::default(),
         }
     }
 }

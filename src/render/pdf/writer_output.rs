@@ -217,27 +217,10 @@ impl PdfWriter {
         out.write_all(b"%PDF-1.4\n")?;
         bytes_written += b"%PDF-1.4\n".len();
 
-        // Font objects
+        // Font objects: only the standard fonts some content stream selects.
         let font_base_id = self.objects.len() + 1;
-        let font_names = [
-            // Helvetica (sans-serif)
-            "Helvetica",
-            "Helvetica-Bold",
-            "Helvetica-Oblique",
-            "Helvetica-BoldOblique",
-            // Times Roman (serif)
-            "Times-Roman",
-            "Times-Bold",
-            "Times-Italic",
-            "Times-BoldItalic",
-            // Courier (monospace)
-            "Courier",
-            "Courier-Bold",
-            "Courier-Oblique",
-            "Courier-BoldOblique",
-            // Symbol (math/Greek)
-            "Symbol",
-        ];
+        let font_names =
+            StandardFontUsage::of_objects(&self.objects, &self.binary_objects).used_names();
 
         // `finish_to_writer` owns the writer, so retain that ownership all the
         // way through final assembly instead of duplicating every textual PDF
@@ -558,7 +541,11 @@ impl PdfWriter {
         // Catalog
         let catalog_id = all_objects.len() + 1;
         all_objects.push(format!(
-            "{catalog_id} 0 obj\n<< /Type /Catalog /Pages {pages_id} 0 R{outlines_ref} >>\nendobj",
+            "{catalog_id} 0 obj\n<< /Type /Catalog /Pages {pages_id} 0 R{outlines_ref}{viewer} >>\nendobj",
+            viewer = self
+                .opts
+                .viewer
+                .catalog_entries(self.page_ids.first().copied()),
         ));
 
         // Write objects and track offsets for xref

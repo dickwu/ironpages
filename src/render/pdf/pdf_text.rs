@@ -43,6 +43,15 @@ pub(crate) fn utf8_to_winansi(text: &str) -> Vec<u8> {
             0x0153 => result.push(0x9C), // Latin small ligature oe
             0x017E => result.push(0x9E), // Latin small letter z with caron
             0x0178 => result.push(0x9F), // Latin capital letter Y with diaeresis
+            // Under `FontFallback::RegisteredOnly` an unrepresentable character
+            // is left blank: a no-break space, the advance layout measured
+            // for it (see `fonts::char_width`). Invisible characters vanish.
+            _ if crate::font_options::blanks_missing_glyphs() => {
+                if !crate::font_options::is_invisible(ch) {
+                    crate::font_options::record_missing([ch]);
+                    result.push(0xA0);
+                }
+            }
             // Anything else is not representable in WinAnsi — replace with '?'
             _ => result.push(b'?'),
         }

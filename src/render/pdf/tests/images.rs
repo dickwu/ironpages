@@ -413,7 +413,7 @@
             <body><p>Styled serif</p></body>
             </html>
         "#;
-        let pdf = crate::html_to_pdf(html).unwrap();
+        let pdf = crate::HtmlConverter::new().font_fallback(crate::FontFallback::RegisteredOnly(crate::MissingGlyphs::Blank)).convert(html).unwrap();
         let content = String::from_utf8_lossy(&pdf);
         assert!(
             content.contains("/Times-Roman"),

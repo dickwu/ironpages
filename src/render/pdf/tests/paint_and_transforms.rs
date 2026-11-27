@@ -1,30 +1,17 @@
 #[test]
-fn render_all_12_fonts_registered() {
-    let html = "<p>Test</p>";
+fn render_registers_only_selected_standard_fonts() {
+    let html = "<p>Test <b>bold</b></p>";
     let nodes = parse_html(html).unwrap();
     let pages = layout(&nodes, PageSize::A4, Margin::default());
     let pdf = render_pdf(&pages, PageSize::A4, Margin::default()).unwrap();
     let content = String::from_utf8_lossy(&pdf);
-    // All 12 standard font variants should be registered as font objects
-    for name in &[
-        "Helvetica",
-        "Helvetica-Bold",
-        "Helvetica-Oblique",
-        "Helvetica-BoldOblique",
-        "Times-Roman",
-        "Times-Bold",
-        "Times-Italic",
-        "Times-BoldItalic",
-        "Courier",
-        "Courier-Bold",
-        "Courier-Oblique",
-        "Courier-BoldOblique",
-    ] {
-        assert!(
-            content.contains(&format!("/BaseFont /{name}")),
-            "PDF should register font {name}"
-        );
-    }
+    let registered: Vec<&str> = content
+        .split("/Subtype /Type1 /BaseFont /")
+        .skip(1)
+        .filter_map(|rest| rest.split_whitespace().next())
+        .collect();
+    // Only the standard fonts the page content selects are written.
+    assert_eq!(registered, ["Times-Roman", "Times-Bold"]);
 }
 
 #[test]

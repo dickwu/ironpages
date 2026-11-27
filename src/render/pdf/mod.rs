@@ -83,6 +83,7 @@ mod raster_placement;
 mod resources;
 mod shadows;
 mod stacking;
+mod standard_fonts;
 mod table_borders;
 mod text_baselines;
 mod text_lines;
@@ -95,6 +96,7 @@ mod writer;
 mod writer_images;
 mod writer_masks;
 mod writer_output;
+use standard_fonts::StandardFontUsage;
 
 use affine_solids::{render_affine_solid_box, render_affine_solid_group};
 use background_images::{BlockBackground, render_block_svg_background, render_svg_background};
@@ -865,6 +867,7 @@ pub(crate) fn render_pdf_to_writer_full_opts_with_resources<W: std::io::Write>(
         );
     }
 
+    crate::font_options::check_missing_glyphs()?;
     pdf_writer.finish_to_writer(writer, &bookmarks)
 }
 
