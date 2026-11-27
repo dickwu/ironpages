@@ -542,3 +542,34 @@ fn g11_rowspan_vertical_align_includes_row_spacing() {
         "bottom-aligned merged {merged} vs Bottom {bottom}"
     );
 }
+
+#[test]
+fn forced_break_inside_a_page_filling_table_does_not_leave_a_blank_page() {
+    // A table whose first fragment fills the page and is followed by a nested
+    // forced break must be placed as cut: re-fragmenting it against its own
+    // estimated extent would push its content to a second page and leave the
+    // first one empty.
+    let pdf = render(
+        r#"<style>
+        @page {size:144pt 150pt; margin:0}
+        body {margin:0; font:12pt Helvetica}
+        .stage {break-before:page}
+        .outer {display:table; border-collapse:separate; border-spacing:3px;
+                width:126px; padding:7px; border:2px solid #577590;
+                min-height:96px; margin:33px auto 0}
+        .own {height:22px; white-space:nowrap}
+        .inner {break-before:page; break-inside:avoid; width:58px; height:48px}
+        </style>
+        <div class="stage"><div>Lead</div></div>
+        <div class="stage"><div class="outer"><div class="own">Alpha Beta</div>
+        <div class="inner">Gamma</div></div></div>"#,
+    );
+    let pages = page_contents(&pdf);
+    assert_eq!(pages.len(), 3, "pages={}", pages.len());
+    assert!(painted(&pages[0], "Lead"));
+    assert!(
+        painted(&pages[1], "Alpha"),
+        "table content stays on its page"
+    );
+    assert!(painted(&pages[2], "Gamma"));
+}

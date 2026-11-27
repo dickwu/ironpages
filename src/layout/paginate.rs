@@ -2234,6 +2234,11 @@ struct PendingElement {
     /// page. The group is still paginated element by element once admitted, so
     /// normal painting and flow stay unchanged.
     avoid_group: Option<AvoidBreakGroup>,
+    /// The fragment was cut at a retained forced break so that it fits the
+    /// space before that break. The break marker queued right behind it ends
+    /// the page, so the fragment is placed as cut instead of being re-split
+    /// against its own estimated extent.
+    cut_at_forced_break: bool,
 }
 
 impl PendingElement {
@@ -2242,6 +2247,7 @@ impl PendingElement {
             element,
             is_fragment_continuation: false,
             avoid_group: None,
+            cut_at_forced_break: false,
         }
     }
 
@@ -2250,6 +2256,7 @@ impl PendingElement {
             element,
             is_fragment_continuation: true,
             avoid_group: None,
+            cut_at_forced_break: false,
         }
     }
 }
@@ -2799,6 +2806,7 @@ pub(crate) fn paginate_with_context(
         mut element,
         is_fragment_continuation,
         avoid_group,
+        cut_at_forced_break,
     }) = work.pop_front()
     {
         if is_avoid_page_break(element.as_ref()) {
@@ -3234,6 +3242,7 @@ pub(crate) fn paginate_with_context(
                     element: first,
                     is_fragment_continuation,
                     avoid_group: None,
+                    cut_at_forced_break: false,
                 });
                 continue;
             }
@@ -3307,6 +3316,7 @@ pub(crate) fn paginate_with_context(
                                 element: first,
                                 is_fragment_continuation,
                                 avoid_group: None,
+                                cut_at_forced_break: true,
                             });
                         }
                         continue;
@@ -3511,11 +3521,17 @@ pub(crate) fn paginate_with_context(
                     element: first,
                     is_fragment_continuation,
                     avoid_group: None,
+                    cut_at_forced_break: true,
                 });
             }
             continue;
         }
+        let followed_by_forced_break = cut_at_forced_break
+            && work
+                .front()
+                .is_some_and(|pending| page_break_data(pending.element.as_ref()).is_some());
         if elem_position == Position::Static
+            && !followed_by_forced_break
             && may_fragment_internally
             && exceeds_with_roundoff(y + effective_element_height, effective_content_height)
         {
